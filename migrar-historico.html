@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lincoln FC — Migración Histórica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: { 'lfc-red':'#BD202F','lfc-navy':'#193560','lfc-slate':'#6A7B95','lfc-charcoal':'#20242A' },
+        fontFamily: { 'barlow':['"Barlow Condensed"','sans-serif'], 'montserrat':['Montserrat','sans-serif'] }
+      }}
+    }
+  </script>
+</head>
+<body class="bg-lfc-charcoal min-h-screen font-montserrat p-4">
+  <div class="max-w-lg mx-auto">
+    <h1 class="text-white font-barlow font-bold text-3xl uppercase tracking-wide mb-1 mt-4">Migración Histórica</h1>
+    <p class="text-lfc-slate text-sm mb-6">Carga datos históricos de asistencia por equipo</p>
+
+    <div id="log" class="bg-lfc-navy rounded-xl p-4 mb-5 text-xs font-mono text-lfc-slate h-40 overflow-y-auto space-y-1">
+      <p>Selecciona un equipo para migrar.</p>
+    </div>
+
+    <div class="grid gap-3 mb-6" id="botones"></div>
+
+    <a href="dashboard.html" class="block text-center text-lfc-slate text-sm hover:text-white transition">
+      ← Volver al dashboard
+    </a>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+
+  <script>
+  // ══════════════════════════════════════════════════════════════════
+  //  DATOS HISTÓRICOS POR EQUIPO
+  //  Cada entrada: { equipoId, equipoNombre, fechas[], jugadores[] }
+  //  jugadores[]: { id, nombre, est[] }  — índices corresponden a fechas[]
+  // ══════════════════════════════════════════════════════════════════
+
+  const HISTORICOS = [
+
+    // ── U9 — Agosto 2026 (7 sesiones) ──────────────────────────────
+    {
+      equipoId: 'u9', equipoNombre: 'Sub 9',
+      fechas: ['2026-08-06','2026-08-11','2026-08-13','2026-08-18','2026-08-20','2026-08-20b','2026-08-27'],
+      jugadores: [
+        { id:'aguilar_esteban',     nombre:'Aguilar Esteban',     est:['asiste','asiste','asiste','falta', 'falta', 'asiste','asiste'] },
+        { id:'amrhein_patrick',     nombre:'Amrhein Patrick',     est:['falta', 'asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'anchia_antonio',      nombre:'Anchia Antonio',      est:['asiste','asiste','asiste','asiste','asiste','falta', 'asiste'] },
+        { id:'apestegui_alejandro', nombre:'Apestegui Alejandro', est:['asiste','falta', 'falta', 'asiste','asiste','asiste','asiste'] },
+        { id:'arata_eduardo',       nombre:'Arata Eduardo',       est:['asiste','asiste','falta', 'asiste','asiste','asiste','asiste'] },
+        { id:'barrantes_julian',    nombre:'Barrantes Julian',    est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'castillo_felipe',     nombre:'Castillo Felipe',     est:['asiste','falta', 'asiste','asiste','asiste','asiste','asiste'] },
+        { id:'cordero_jose_mario',  nombre:'Cordero Jose Mario',  est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'de_ford_george',      nombre:'De Ford George',      est:['asiste','falta', 'asiste','asiste','asiste','asiste','asiste'] },
+        { id:'echeverria_mateo',    nombre:'Echeverria Mateo',    est:['asiste','asiste','falta', 'asiste','asiste','asiste','asiste'] },
+        { id:'escalante_ignacio',   nombre:'Escalante Ignacio',   est:['asiste','asiste','falta', 'asiste','asiste','asiste','asiste'] },
+        { id:'federspiel_hubert',   nombre:'Federspiel Hubert',   est:['asiste','asiste','falta', 'falta', 'asiste','asiste','asiste'] },
+        { id:'ferris_konrad',       nombre:'Ferris Konrad',       est:['asiste','asiste','asiste','falta', 'asiste','asiste','asiste'] },
+        { id:'lamugue_iker',        nombre:'Lamugue Iker',        est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'latorraca_geronimo',  nombre:'Latorraca Geronimo',  est:['asiste','falta', 'asiste','asiste','asiste','asiste','asiste'] },
+        { id:'lizano_felipe',       nombre:'Lizano Felipe',       est:['asiste','asiste','falta', 'asiste','asiste','asiste','asiste'] },
+        { id:'madrigal_theo',       nombre:'Madrigal Theo',       est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'morales_fernan',      nombre:'Morales Fernan',      est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'morales_sebastian',   nombre:'Morales Sebastian',   est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'perez_alejandro',     nombre:'Perez Alejandro',     est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'sevilla_gabriel',     nombre:'Sevilla Gabriel',     est:['asiste','asiste','falta', 'falta', 'asiste','asiste','asiste'] },
+        { id:'solis_antonio',       nombre:'Solis Antonio',       est:['asiste','asiste','asiste','falta', 'asiste','asiste','asiste'] },
+        { id:'soto_alejandro',      nombre:'Soto Alejandro',      est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'valverde_marcelo',    nombre:'Valverde Marcelo',    est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'varela_franco',       nombre:'Varela Franco',       est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'vicenti_nicolas',     nombre:'Vicenti Nicolas',     est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+      ]
+    },
+
+    // ── U11 — Agosto 2026 (8 sesiones) ─────────────────────────────
+    {
+      equipoId: 'u11', equipoNombre: 'Sub 11',
+      fechas: ['2026-08-04','2026-08-06','2026-08-11','2026-08-13','2026-08-18','2026-08-20','2026-08-25','2026-08-27'],
+      jugadores: [
+        { id:'alvarado_saul',       nombre:'Alvarado Saul',       est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'araya_javier',        nombre:'Araya Javier',        est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'barrantes_guillermo', nombre:'Barrantes Guillermo', est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'beirute_emiliano',    nombre:'Beirute Emiliano',    est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'beirute_stefano',     nombre:'Beirute Stefano',     est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'cartin_julin',        nombre:'Cartin Julin',        est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'chavez_gabriel',      nombre:'Chavez Gabriel',      est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'cordero_andres',      nombre:'Cordero Andres',      est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','falta' ] },
+        { id:'echeverria_saul',     nombre:'Echeverria Saul',     est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'garita_luisa',        nombre:'Garita Luisa',        est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','falta' ] },
+        { id:'madrigal_thiago',     nombre:'Madrigal Thiago',     est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'morales_gonzalo',     nombre:'Morales Gonzalo',     est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'morales_manrique',    nombre:'Morales Manrique',    est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'prez_francisco',      nombre:'Prez Francisco',      est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'pombo_max',           nombre:'Pombo Max',           est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'robles_lara',         nombre:'Robles Lara',         est:['asiste','asiste','asiste','asiste','falta', 'asiste','asiste','asiste'] },
+        { id:'rodriguez_felipe',    nombre:'Rodriguez Felipe',    est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'uribe_javier',        nombre:'Uribe Javier',        est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'velazquez_alberto',   nombre:'Velazquez Alberto',   est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'volio_alfredo',       nombre:'Volio Alfredo',       est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+      ]
+    },
+
+    // ── U13 Proceso — Agosto 2026 (7 sesiones) ─────────────────────
+    {
+      equipoId: 'u13p', equipoNombre: 'Sub 13 Proceso',
+      fechas: ['2026-08-04','2026-08-06','2026-08-11','2026-08-13','2026-08-20','2026-08-25','2026-08-27'],
+      jugadores: [
+        { id:'allen_levy',           nombre:'Allen Levy',           est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'araya_juan_manuel',    nombre:'Araya Juan Manuel',    est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'barrantes_daniel',     nombre:'Barrantes Daniel',     est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'beirute_massimiliano', nombre:'Beirute Massimiliano', est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'carboni_emiliano',     nombre:'Carboni Emiliano',     est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'castillo_gabriel',     nombre:'Castillo Gabriel',     est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'devoto_tomas',         nombre:'Devoto Tomas',         est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'gamboa_samuel',        nombre:'Gamboa Samuel',        est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'garcia_saul',          nombre:'Garcia Saul',          est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'gutierrez_alejandro',  nombre:'Gutierrez Alejandro',  est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'helwig_anthony',       nombre:'Helwig Anthony',       est:['asiste','falta', 'falta', 'falta', 'asiste','asiste','asiste'] },
+        { id:'herrera_ignacio',      nombre:'Herrera Ignacio',      est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'hidalgo_felipe',       nombre:'Hidalgo Felipe',       est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'madrigal_erick',       nombre:'Madrigal Erick',       est:['falta', 'asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'perez_fernando',       nombre:'Perez Fernando',       est:['asiste','falta', 'asiste','asiste','falta', 'asiste','asiste'] },
+        { id:'rojas_julian',         nombre:'Rojas Julian',         est:['asiste','asiste','asiste','falta', 'asiste','asiste','asiste'] },
+        { id:'romero_luciano',       nombre:'Romero Luciano',       est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'sanchez_felipe',       nombre:'Sanchez Felipe',       est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'sarbok_david',         nombre:'Sarbok David',         est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'sauma_antonio',        nombre:'Sauma Antonio',        est:['asiste','falta', 'asiste','asiste','asiste','asiste','asiste'] },
+        { id:'soto_felipe',          nombre:'Soto Felipe',          est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'truque_tomas',         nombre:'Truque Tomas',         est:['asiste','asiste','asiste','falta', 'falta', 'asiste','asiste'] },
+        { id:'uribe_sebastian',      nombre:'Uribe Sebastian',      est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'vaquero_luca',         nombre:'Vaquero Luca',         est:['falta', 'falta', 'asiste','asiste','asiste','asiste','asiste'] },
+        { id:'vincenti_lorenzo',     nombre:'Vincenti Lorenzo',     est:['asiste','asiste','asiste','asiste','asiste','asiste','falta' ] },
+      ]
+    },
+
+    // ── U13 — Agosto 2026 (6 sesiones) ─────────────────────────────
+    // Guiones (—) = no se tomó asistencia → se registran como Asiste
+    {
+      equipoId: 'u13', equipoNombre: 'Sub 13',
+      fechas: ['2026-08-04','2026-08-06','2026-08-11','2026-08-13','2026-08-18','2026-08-25'],
+      jugadores: [
+        { id:'aguilar_federico',     nombre:'Aguilar Federico',     est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'anchia_ignacio',       nombre:'Anchia Ignacio',       est:['falta', 'asiste','asiste','asiste','asiste','asiste'] },
+        { id:'antiezar_ignacio',     nombre:'Antiezar Ignacio',     est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'arredondo_alejandro',  nombre:'Arredondo Alejandro',  est:['asiste','falta', 'asiste','asiste','asiste','asiste'] },
+        { id:'aubert_jean_paul',     nombre:'Aubert Jean Paul',     est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'baudrit_luisana',      nombre:'Baudrit Luisana',      est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'bissinger_kai',        nombre:'Bissinger Kai',        est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'broutin_jean_paul',    nombre:'Broutin Jean Paul',    est:['asiste','asiste','falta', 'asiste','asiste','asiste'] },
+        { id:'cartin_gael',          nombre:'Cartin Gael',          est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'chaves_andres',        nombre:'Chaves Andres',        est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'corrales_tomas',       nombre:'Corrales Tomas',       est:['asiste','falta', 'asiste','asiste','asiste','asiste'] },
+        { id:'ferris_christopher',   nombre:'Ferris Christopher',   est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'gallegos_tomas',       nombre:'Gallegos Tomas',       est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'garita_fernando',      nombre:'Garita Fernando',      est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'lacayo_octavio',       nombre:'Lacayo Octavio',       est:['falta', 'asiste','asiste','asiste','asiste','asiste'] },
+        { id:'mena_javier',          nombre:'Mena Javier',          est:['falta', 'asiste','asiste','asiste','asiste','asiste'] },
+        { id:'mora_alberto',         nombre:'Mora Alberto',         est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'morales_gabriel',      nombre:'Morales Gabriel',      est:['asiste','asiste','asiste','asiste','falta', 'asiste'] },
+        { id:'oreamuno_gabriel',     nombre:'Oreamuno Gabriel',     est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'pacheco_mateo',        nombre:'Pacheco Mateo',        est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'saborio_andres',       nombre:'Saborio Andres',       est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'tang_ayden',           nombre:'Tang Ayden',           est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'uribe_mateo',          nombre:'Uribe Mateo',          est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'vargas_loaiza_javier', nombre:'Vargas Loaiza Javier', est:['asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'zuniga_nicolas',       nombre:'Zuniga Nicolas',       est:['falta', 'falta', 'falta', 'falta', 'falta', 'falta'] },
+      ]
+    },
+
+    // ── U15 — Agosto 2026 (7 sesiones) ─────────────────────────────
+    {
+      equipoId: 'u15', equipoNombre: 'Sub 15',
+      fechas: ['2026-08-03','2026-08-05','2026-08-10','2026-08-12','2026-08-17','2026-08-24','2026-08-27'],
+      jugadores: [
+        { id:'alfaro_tomas',        nombre:'Alfaro Tomas',        est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'atienzar_ernesto',    nombre:'Atienzar Ernesto',    est:['falta', 'falta', 'falta', 'asiste','asiste','falta', 'asiste'] },
+        { id:'barrantes_javier',    nombre:'Barrantes Javier',    est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'baudrit_santiago',    nombre:'Baudrit Santiago',    est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'bogantes_tomas',      nombre:'Bogantes Tomas',      est:['falta', 'falta', 'falta', 'asiste','asiste','asiste','asiste'] },
+        { id:'bombardelli_felipe',  nombre:'Bombardelli Felipe',  est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'camacho_fabian',      nombre:'Camacho Fabian',      est:['asiste','asiste','asiste','asiste','falta', 'falta', 'asiste'] },
+        { id:'casafont_fernan',     nombre:'Casafont Fernan',     est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'chavarria_juan_pablo',nombre:'Chavarria Juan Pablo', est:['falta', 'falta', 'falta', 'falta', 'asiste','falta', 'asiste'] },
+        { id:'contreras_javier',    nombre:'Contreras Javier',    est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'coto_felipe',         nombre:'Coto Felipe',         est:['asiste','falta', 'falta', 'asiste','asiste','falta', 'falta' ] },
+        { id:'cuevas_juan_diego',   nombre:'Cuevas Juan Diego',   est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'ferris_patrick',      nombre:'Ferris Patrick',      est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'gamboa_constanza',    nombre:'Gamboa Constanza',    est:['falta', 'asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'garita_ruben',        nombre:'Garita Ruben',        est:['asiste','asiste','asiste','asiste','asiste','asiste','falta' ] },
+        { id:'gutierrez_sebastian', nombre:'Gutierrez Sebastian', est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'gutierrez_julian',    nombre:'Gutierrez Julian',    est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'guzman_antonio',      nombre:'Guzman Antonio',      est:['falta', 'falta', 'falta', 'asiste','asiste','asiste','asiste'] },
+        { id:'jimenez_teo',         nombre:'Jimenez Teo',         est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'peralta_julian',      nombre:'Peralta Julian',      est:['falta', 'falta', 'falta', 'asiste','asiste','asiste','asiste'] },
+        { id:'rivera_ignacio',      nombre:'Rivera Ignacio',      est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'robles_santiago',     nombre:'Robles Santiago',     est:['falta', 'falta', 'falta', 'falta', 'falta', 'falta', 'falta' ] },
+        { id:'rojas_nico',          nombre:'Rojas Nico',          est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'romero_santiago',     nombre:'Romero Santiago',     est:['asiste','asiste','asiste','asiste','falta', 'falta', 'asiste'] },
+        { id:'seeman_thomas',       nombre:'Seeman Thomas',       est:['asiste','asiste','asiste','asiste','asiste','falta', 'falta' ] },
+        { id:'silva_emilano',       nombre:'Silva Emilano',       est:['asiste','asiste','asiste','asiste','asiste','asiste','asiste'] },
+        { id:'zechinato_gianluca',  nombre:'Zechinato Gianluca',  est:['asiste','asiste','asiste','falta', 'asiste','asiste','asiste'] },
+      ]
+    },
+
+    // ── U21 — Agosto 2026 (15 sesiones) ────────────────────────────
+    {
+      equipoId: 'u21', equipoNombre: 'Sub 21',
+      fechas: ['2026-08-03','2026-08-05','2026-08-07','2026-08-09','2026-08-10','2026-08-12','2026-08-14','2026-08-17','2026-08-19','2026-08-21','2026-08-23','2026-08-24','2026-08-26','2026-08-28','2026-08-30'],
+      jugadores: [
+        { id:'artavia_espinach_emilio',     nombre:'Artavia Espinach Emilio',     est:['asiste','asiste', 'asiste', 'asiste', 'permiso','permiso','asiste', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion'] },
+        { id:'madrigal_brenes_alejandro',   nombre:'Madrigal Brenes Alejandro',   est:['permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso'] },
+        { id:'gazel_delgado_santiago',      nombre:'Gazel Delgado Santiago',      est:['permiso','permiso','permiso','asiste', 'asiste', 'asiste', 'permiso','asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'permiso','asiste', 'asiste'] },
+        { id:'volio_chavarria_felipe',      nombre:'Volio Chavarria Felipe',      est:['asiste', 'permiso','asiste', 'permiso','permiso','permiso','asiste', 'asiste', 'permiso','permiso','permiso','lesion', 'lesion', 'lesion', 'lesion'] },
+        { id:'olivo_gallegos_marco',        nombre:'Olivo Gallegos Marco',        est:['asiste', 'permiso','asiste', 'permiso','asiste', 'permiso','permiso','asiste', 'permiso','permiso','permiso','lesion', 'permiso','asiste', 'asiste'] },
+        { id:'segura_vargas_julian',        nombre:'Segura Vargas Julian',        est:['permiso','permiso','permiso','permiso','permiso','permiso','permiso','lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion'] },
+        { id:'sanabria_rodriguez_javier',   nombre:'Sanabria Rodriguez Javier',   est:['asiste', 'permiso','asiste', 'permiso','permiso','permiso','asiste', 'asiste', 'permiso','permiso','permiso','permiso','permiso','asiste', 'asiste'] },
+        { id:'xirinach_brenes_randy',       nombre:'Xirinach Brenes Randy',       est:['asiste', 'asiste', 'asiste', 'asiste', 'permiso','permiso','asiste', 'asiste', 'asiste', 'permiso','permiso','permiso','permiso','permiso','permiso'] },
+        { id:'soto_garcia_luciano',         nombre:'Soto Garcia Luciano',         est:['asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'permiso','asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste'] },
+        { id:'child_constenla_ignacio',     nombre:'Child Constenla Ignacio',     est:['asiste', 'permiso','asiste', 'asiste', 'permiso','permiso','asiste', 'asiste', 'permiso','permiso','permiso','permiso','permiso','permiso','permiso'] },
+        { id:'goldberg_martin_ian',         nombre:'Goldberg Martin Ian',         est:['asiste', 'permiso','asiste', 'asiste', 'permiso','permiso','asiste', 'asiste', 'permiso','permiso','permiso','asiste', 'lesion', 'permiso','asiste'] },
+        { id:'zamora_chavarria_roberto',    nombre:'Zamora Chavarria Roberto',    est:['permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso'] },
+        { id:'sauma_prado_sergio',          nombre:'Sauma Prado Sergio',          est:['lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'permiso','asiste', 'asiste', 'asiste', 'permiso'] },
+        { id:'jimenez_antonio',             nombre:'Jimenez Antonio',             est:['permiso','permiso','permiso','permiso','permiso','permiso','asiste', 'permiso','permiso','lesion', 'lesion', 'permiso','asiste', 'asiste', 'permiso'] },
+        { id:'segnini_luciano',             nombre:'Segnini Luciano',             est:['permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','asiste', 'permiso','permiso','permiso','asiste', 'asiste'] },
+        { id:'woodbridge_aubert_alan',      nombre:'Woodbridge Aubert Alan',      est:['permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','asiste', 'permiso','asiste'] },
+        { id:'alvarenga_soler_diego',       nombre:'Alvarenga Soler Diego',       est:['lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion', 'lesion'] },
+        { id:'saborio_mora_oscar',          nombre:'Saborio Mora Oscar',          est:['permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','lesion', 'lesion', 'lesion', 'asiste', 'permiso','asiste'] },
+        { id:'quirce_tanzi_antonio',        nombre:'Quirce Tanzi Antonio',        est:['permiso','permiso','asiste', 'asiste', 'asiste', 'permiso','asiste', 'permiso','asiste', 'asiste', 'asiste', 'permiso','asiste', 'asiste', 'asiste'] },
+        { id:'atmetlla_barchi_emilio',      nombre:'Atmetlla Barchi Emilio',      est:['asiste', 'asiste', 'asiste', 'asiste', 'permiso','permiso','asiste', 'permiso','asiste', 'asiste', 'permiso','permiso','asiste', 'asiste', 'asiste'] },
+        { id:'garro_gonzales_alejandro',    nombre:'Garro Gonzales Alejandro',    est:['permiso','permiso','permiso','permiso','lesion', 'permiso','permiso','permiso','permiso','asiste', 'permiso','lesion', 'asiste', 'permiso','asiste'] },
+        { id:'escobar_nieto_javier',        nombre:'Escobar Nieto Javier',        est:['permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','asiste', 'permiso','asiste', 'asiste', 'asiste', 'asiste'] },
+        { id:'vazquez_murillo_alejandro',   nombre:'Vazquez Murillo Alejandro',   est:['permiso','permiso','permiso','permiso','permiso','permiso','permiso','permiso','asiste', 'asiste', 'permiso','permiso','permiso','asiste', 'permiso'] },
+        { id:'riggioni_vega_alessio',       nombre:'Riggioni Vega Alessio',       est:['permiso','permiso','permiso','permiso','asiste', 'permiso','asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'permiso','asiste', 'asiste', 'asiste'] },
+        { id:'pena_villalobos_felipe',      nombre:'Peña Villalobos Felipe',      est:['asiste', 'asiste', 'asiste', 'asiste', 'permiso','permiso','permiso','permiso','permiso','asiste', 'asiste', 'permiso','asiste', 'permiso','permiso'] },
+        { id:'fernandez_egloff_antonio',    nombre:'Fernandez Egloff Antonio',    est:['asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste'] },
+        { id:'odio_vargas_eduardo',         nombre:'Odio Vargas Eduardo',         est:['asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'asiste', 'permiso','asiste', 'asiste', 'permiso','permiso','permiso'] },
+        { id:'vanderlaat_gonzalez_patrick', nombre:'Vanderlaat Gonzalez Patrick', est:['permiso','asiste', 'permiso','asiste', 'permiso','asiste', 'asiste', 'permiso','asiste', 'asiste', 'permiso','permiso','lesion', 'asiste', 'asiste'] },
+        { id:'rojo_guardia_andres',         nombre:'Rojo Guardia Andres',         est:['permiso','permiso','permiso','asiste', 'permiso','permiso','permiso','permiso','permiso','permiso','asiste', 'permiso','permiso','asiste', 'asiste'] },
+      ]
+    },
+
+  ];
+
+  // ══════════════════════════════════════════════════════════════════
+
+  const log = document.getElementById('log');
+  function addLog(msg, color = 'text-lfc-slate') {
+    const p = document.createElement('p');
+    p.className = color;
+    p.textContent = msg;
+    log.appendChild(p);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function migrar(equipo, btn) {
+    btn.disabled = true;
+    btn.textContent = `Migrando ${equipo.equipoNombre}…`;
+    log.innerHTML = '';
+    addLog(`Iniciando migración de ${equipo.equipoNombre}…`);
+
+    let docsCreados = 0;
+    try {
+      for (let fi = 0; fi < equipo.fechas.length; fi++) {
+        const fecha = equipo.fechas[fi];
+        const registros = {};
+        equipo.jugadores.forEach(j => {
+          registros[j.id] = { nombre: j.nombre, estado: j.est[fi] };
+        });
+        await db.collection('asistencia').doc(`${equipo.equipoId}_${fecha}`).set({
+          equipo: equipo.equipoId,
+          equipoNombre: equipo.equipoNombre,
+          fecha,
+          registros,
+          creadoPor: 'migracion-historica',
+          ultimaEdicion: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        const presentes = equipo.jugadores.filter(j => j.est[fi] === 'asiste').length;
+        addLog(`  ✓ ${fecha} — ${presentes}/${equipo.jugadores.length} presentes`, 'text-green-400');
+        docsCreados++;
+      }
+      addLog(``, '');
+      addLog(`✅ ${equipo.equipoNombre}: ${docsCreados} sesiones cargadas.`, 'text-green-400');
+      btn.textContent = `✓ ${equipo.equipoNombre} completado`;
+      btn.className = btn.className.replace('bg-lfc-red hover:bg-red-700', 'bg-green-700 cursor-default');
+    } catch (e) {
+      addLog(`❌ Error: ${e.message}`, 'text-red-400');
+      btn.disabled = false;
+      btn.textContent = `Reintentar ${equipo.equipoNombre}`;
+    }
+  }
+
+  // Crear botones dinámicamente
+  const contenedor = document.getElementById('botones');
+  HISTORICOS.forEach(eq => {
+    const btn = document.createElement('button');
+    btn.className = 'w-full bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-xl uppercase tracking-widest py-3 rounded-xl transition';
+    btn.textContent = `Cargar ${eq.equipoNombre} (${eq.fechas.length} sesiones, ${eq.jugadores.length} jugadores)`;
+    btn.addEventListener('click', () => migrar(eq, btn));
+    contenedor.appendChild(btn);
+  });
+  </script>
+</body>
+</html>

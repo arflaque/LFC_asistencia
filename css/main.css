@@ -1,0 +1,78 @@
+/* Lincoln FC — Control de Asistencia */
+
+/* Status button states */
+.status-btn {
+  border: 1px solid rgba(106, 123, 149, 0.3);
+  background-color: #20242A;
+  color: #6A7B95;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  transition: all 0.12s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.status-btn:active { transform: scale(0.93); }
+.status-btn.active-asiste      { background-color: #16a34a; color: #fff; border-color: #16a34a; }
+.status-btn.active-falta       { background-color: #BD202F; color: #fff; border-color: #BD202F; }
+.status-btn.active-permiso     { background-color: #2563eb; color: #fff; border-color: #2563eb; }
+.status-btn.active-lesion      { background-color: #ea580c; color: #fff; border-color: #ea580c; }
+.status-btn.active-tarde       { background-color: #F5BB18; color: #20242A; border-color: #F5BB18; }
+.status-btn.active-suspendido  { background-color: #6A7B95; color: #fff; border-color: #6A7B95; }
+
+/* Player row highlight when fully marked */
+.player-row { transition: background-color 0.15s; }
+.player-row:active { background-color: rgba(25, 53, 96, 0.4); }
+
+/* Spinner */
+.spinner {
+  border: 2px solid rgba(106, 123, 149, 0.25);
+  border-top-color: #BD202F;
+  border-radius: 50%;
+  width: 22px; height: 22px;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #20242A; }
+::-webkit-scrollbar-thumb { background: #193560; border-radius: 2px; }
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 9999;
+  white-space: nowrap;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+/* Focus ring */
+input:focus, select:focus, button:focus-visible {
+  outline: 2px solid #BD202F;
+  outline-offset: 2px;
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: #193560;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: #BD202F;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}

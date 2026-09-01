@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Lincoln FC — Asistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          'lfc-red':'#BD202F','lfc-navy':'#193560',
+          'lfc-slate':'#6A7B95','lfc-charcoal':'#20242A',
+          'lfc-yellow':'#F5BB18','lfc-blue':'#004A8F'
+        },
+        fontFamily: {
+          'barlow': ['"Barlow Condensed"','sans-serif'],
+          'montserrat': ['Montserrat','sans-serif']
+        }
+      }}
+    }
+  </script>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="bg-lfc-charcoal min-h-screen flex items-center justify-center font-montserrat">
+
+  <div class="w-full max-w-sm px-5 py-8">
+
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="w-20 h-20 rounded-full bg-lfc-navy border-2 border-lfc-red flex items-center justify-center mx-auto mb-4">
+        <span class="text-white font-barlow font-bold text-3xl tracking-wider">LFC</span>
+      </div>
+      <h1 class="text-white font-barlow font-bold text-4xl uppercase tracking-widest">Lincoln FC</h1>
+      <p class="text-lfc-slate text-xs mt-1 tracking-widest uppercase">Control de Asistencia</p>
+    </div>
+
+    <!-- Formulario -->
+    <div class="bg-lfc-navy rounded-2xl p-6 shadow-xl">
+
+      <div id="msg-error"
+        class="hidden mb-4 px-3 py-2 rounded-lg bg-lfc-red/20 border border-lfc-red/50 text-red-300 text-sm text-center">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-2">Email</label>
+        <input id="inp-email" type="email" autocomplete="email"
+          placeholder="correo@ejemplo.com"
+          class="w-full bg-lfc-charcoal text-white placeholder-lfc-slate/40 rounded-xl px-4 py-3 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none transition">
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-2">Contraseña</label>
+        <input id="inp-pass" type="password" autocomplete="current-password"
+          placeholder="••••••••"
+          class="w-full bg-lfc-charcoal text-white placeholder-lfc-slate/40 rounded-xl px-4 py-3 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none transition">
+      </div>
+
+      <button id="btn-login"
+        class="w-full bg-lfc-red hover:bg-red-700 active:bg-red-800 text-white font-barlow font-bold text-xl uppercase tracking-widest py-3 rounded-xl transition">
+        Ingresar
+      </button>
+    </div>
+
+    <p class="text-center text-lfc-slate/30 text-xs mt-8 uppercase tracking-widest">EARN IT. EVERY DAY.</p>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+
+  <script>
+    // Redirigir si ya hay sesión
+    auth.onAuthStateChanged(u => { if (u) location.href = 'dashboard.html'; });
+
+    const email  = document.getElementById('inp-email');
+    const pass   = document.getElementById('inp-pass');
+    const btnLog = document.getElementById('btn-login');
+    const msgErr = document.getElementById('msg-error');
+
+    function showErr(txt) {
+      msgErr.textContent = txt;
+      msgErr.classList.remove('hidden');
+    }
+
+    async function login() {
+      const e = email.value.trim();
+      const p = pass.value;
+      if (!e || !p) { showErr('Ingresa tu email y contraseña.'); return; }
+
+      btnLog.disabled  = true;
+      btnLog.textContent = 'Ingresando…';
+      msgErr.classList.add('hidden');
+
+      try {
+        await auth.signInWithEmailAndPassword(e, p);
+      } catch (err) {
+        const map = {
+          'auth/user-not-found':  'Usuario no encontrado.',
+          'auth/wrong-password':  'Contraseña incorrecta.',
+          'auth/invalid-email':   'Email inválido.',
+          'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos.',
+          'auth/invalid-credential': 'Email o contraseña incorrectos.',
+        };
+        showErr(map[err.code] || 'Error al ingresar. Verifica tus datos.');
+        btnLog.disabled = false;
+        btnLog.textContent = 'Ingresar';
+      }
+    }
+
+    btnLog.addEventListener('click', login);
+    [email, pass].forEach(el => el.addEventListener('keydown', ev => { if (ev.key === 'Enter') login(); }));
+  </script>
+</body>
+</html>

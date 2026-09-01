@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Lincoln FC — Usuarios</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          'lfc-red':'#BD202F','lfc-navy':'#193560',
+          'lfc-slate':'#6A7B95','lfc-charcoal':'#20242A',
+          'lfc-yellow':'#F5BB18','lfc-blue':'#004A8F'
+        },
+        fontFamily: {
+          'barlow': ['"Barlow Condensed"','sans-serif'],
+          'montserrat': ['Montserrat','sans-serif']
+        }
+      }}
+    }
+  </script>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="bg-lfc-charcoal min-h-screen font-montserrat">
+
+  <div id="header-root"></div>
+
+  <main class="max-w-lg mx-auto px-4 py-6">
+
+    <!-- Crear usuario -->
+    <section class="bg-lfc-navy rounded-2xl p-5 mb-6">
+      <h2 class="text-white font-barlow font-bold text-2xl uppercase tracking-wide mb-4">
+        Crear Usuario
+      </h2>
+
+      <div id="msg-crear" class="hidden mb-3 px-3 py-2 rounded-lg text-sm text-center"></div>
+
+      <div class="grid gap-3">
+        <div>
+          <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Nombre completo</label>
+          <input id="c-nombre" type="text" placeholder="Juan Pérez"
+            class="w-full bg-lfc-charcoal text-white placeholder-lfc-slate/40 rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none transition">
+        </div>
+        <div>
+          <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Email</label>
+          <input id="c-email" type="email" placeholder="correo@ejemplo.com"
+            class="w-full bg-lfc-charcoal text-white placeholder-lfc-slate/40 rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none transition">
+        </div>
+        <div>
+          <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Contraseña</label>
+          <input id="c-pass" type="password" placeholder="Mínimo 6 caracteres"
+            class="w-full bg-lfc-charcoal text-white placeholder-lfc-slate/40 rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none transition">
+        </div>
+        <div>
+          <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Rol</label>
+          <select id="c-rol"
+            class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none transition">
+            <option value="coach">Coach</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <div id="equipos-asignados-wrap">
+          <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">
+            Equipos asignados
+          </label>
+          <div id="equipos-checks" class="grid grid-cols-2 gap-2"></div>
+        </div>
+      </div>
+
+      <button id="btn-crear"
+        class="w-full mt-4 bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-xl
+               uppercase tracking-widest py-3 rounded-xl transition">
+        Crear Usuario
+      </button>
+    </section>
+
+    <!-- Lista de usuarios -->
+    <section>
+      <h2 class="text-white font-barlow font-bold text-2xl uppercase tracking-wide mb-3">Usuarios</h2>
+      <div id="loading-users" class="flex justify-center py-6"><div class="spinner"></div></div>
+      <div id="users-list" class="grid gap-3"></div>
+    </section>
+
+  </main>
+
+  <!-- Modal editar usuario -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/70 flex items-end z-50">
+    <div class="bg-lfc-navy w-full max-w-lg mx-auto rounded-t-2xl p-5">
+      <h3 class="text-white font-barlow font-bold text-2xl uppercase mb-4">Editar Usuario</h3>
+      <input type="hidden" id="e-uid">
+      <div class="grid gap-3 mb-4">
+        <div>
+          <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Nombre</label>
+          <input id="e-nombre" type="text"
+            class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Rol</label>
+          <select id="e-rol"
+            class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+            <option value="coach">Coach</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <div id="e-equipos-wrap">
+          <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Equipos</label>
+          <div id="e-equipos-checks" class="grid grid-cols-2 gap-2"></div>
+        </div>
+        <div class="flex items-center gap-3">
+          <label class="text-lfc-slate text-xs font-semibold uppercase tracking-widest">Activo</label>
+          <input id="e-activo" type="checkbox" class="w-4 h-4 accent-lfc-red">
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button id="btn-guardar-edit"
+          class="flex-1 bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-lg uppercase py-3 rounded-xl transition">
+          Guardar
+        </button>
+        <button onclick="closeModal()"
+          class="flex-1 bg-lfc-charcoal text-lfc-slate font-barlow font-bold text-lg uppercase py-3 rounded-xl transition hover:text-white">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/utils.js"></script>
+
+  <script>
+    let equiposAll = [];
+
+    function renderEquipoChecks(containerId, selected = []) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = '';
+      equiposAll.forEach(eq => {
+        const checked = selected.includes(eq.id) ? 'checked' : '';
+        el.innerHTML += `
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" value="${eq.id}" ${checked}
+              class="w-4 h-4 accent-lfc-red">
+            <span class="text-white text-sm">${eq.nombre}</span>
+          </label>`;
+      });
+    }
+
+    function getChecked(containerId) {
+      return [...document.querySelectorAll(`#${containerId} input[type=checkbox]:checked`)]
+        .map(c => c.value);
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
+    }
+
+    function showMsg(id, text, ok) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = `mb-3 px-3 py-2 rounded-lg text-sm text-center ${ok ? 'bg-green-900/40 border border-green-600 text-green-300' : 'bg-red-900/40 border border-lfc-red text-red-300'}`;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    function renderUserCard(u) {
+      const card = document.createElement('div');
+      card.className = `bg-lfc-navy rounded-xl p-4 ${u.activo ? '' : 'opacity-50'}`;
+      card.innerHTML = `
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-white font-semibold text-sm">${u.nombre || '—'}</p>
+            <p class="text-lfc-slate text-xs">${u.email}</p>
+            <div class="flex gap-2 mt-1.5">
+              <span class="text-xs px-2 py-0.5 rounded-full ${u.rol === 'admin' ? 'bg-lfc-red/30 text-red-300' : 'bg-lfc-blue/30 text-blue-300'} font-semibold uppercase">
+                ${u.rol}
+              </span>
+              ${!u.activo ? '<span class="text-xs px-2 py-0.5 rounded-full bg-lfc-slate/20 text-lfc-slate">Inactivo</span>' : ''}
+            </div>
+          </div>
+          <button onclick="openEdit('${u.uid}')"
+            class="text-lfc-slate hover:text-white text-xs font-semibold uppercase tracking-wide transition">
+            Editar
+          </button>
+        </div>`;
+      return card;
+    }
+
+    let usersCache = {};
+
+    function openEdit(uid) {
+      const u = usersCache[uid];
+      if (!u) return;
+      document.getElementById('e-uid').value   = uid;
+      document.getElementById('e-nombre').value = u.nombre || '';
+      document.getElementById('e-rol').value    = u.rol || 'coach';
+      document.getElementById('e-activo').checked = u.activo !== false;
+      renderEquipoChecks('e-equipos-checks', u.equiposAsignados || []);
+      document.getElementById('modal').classList.remove('hidden');
+    }
+
+    requireAuth(async (user) => {
+      renderHeader(document.getElementById('header-root'), user, 'Usuarios');
+
+      // Cargar equipos para los checkboxes
+      equiposAll = await getEquipos();
+      renderEquipoChecks('equipos-checks', []);
+
+      // Ocultar equipos si es admin
+      document.getElementById('c-rol').addEventListener('change', e => {
+        document.getElementById('equipos-asignados-wrap').style.display =
+          e.target.value === 'admin' ? 'none' : '';
+      });
+
+      // Cargar usuarios
+      const snap = await db.collection('usuarios').get();
+      document.getElementById('loading-users').classList.add('hidden');
+      const list = document.getElementById('users-list');
+
+      snap.docs.forEach(d => {
+        const u = { uid: d.id, ...d.data() };
+        usersCache[d.id] = u;
+        list.appendChild(renderUserCard(u));
+      });
+
+      if (!snap.docs.length) {
+        list.innerHTML = '<p class="text-lfc-slate text-sm text-center py-4">No hay usuarios creados.</p>';
+      }
+
+      // Crear usuario
+      document.getElementById('btn-crear').addEventListener('click', async () => {
+        const nombre = document.getElementById('c-nombre').value.trim();
+        const email  = document.getElementById('c-email').value.trim();
+        const pass   = document.getElementById('c-pass').value;
+        const rol    = document.getElementById('c-rol').value;
+        const equipos = rol === 'coach' ? getChecked('equipos-checks') : [];
+
+        if (!nombre || !email || !pass) {
+          showMsg('msg-crear', 'Completa nombre, email y contraseña.', false);
+          return;
+        }
+        if (pass.length < 6) {
+          showMsg('msg-crear', 'La contraseña debe tener al menos 6 caracteres.', false);
+          return;
+        }
+
+        const btn = document.getElementById('btn-crear');
+        btn.disabled = true; btn.textContent = 'Creando…';
+
+        try {
+          // Crear usuario en Auth con instancia secundaria
+          const secondaryApp = firebase.initializeApp(firebase.app().options, 'sec_' + Date.now());
+          const cred = await firebase.auth(secondaryApp).createUserWithEmailAndPassword(email, pass);
+          const uid  = cred.user.uid;
+          await firebase.auth(secondaryApp).signOut();
+          await secondaryApp.delete();
+
+          // Guardar en Firestore
+          const userData = { nombre, email, rol, activo: true,
+            equiposAsignados: rol === 'coach' ? equipos : [] };
+          await db.collection('usuarios').doc(uid).set(userData);
+
+          // Actualizar UI
+          usersCache[uid] = { uid, ...userData };
+          list.appendChild(renderUserCard({ uid, ...userData }));
+
+          // Limpiar formulario
+          ['c-nombre','c-email','c-pass'].forEach(id => document.getElementById(id).value = '');
+          showMsg('msg-crear', `Usuario ${nombre} creado correctamente.`, true);
+        } catch (e) {
+          const map = {
+            'auth/email-already-in-use': 'Ese email ya está registrado.',
+            'auth/invalid-email': 'Email inválido.',
+          };
+          showMsg('msg-crear', map[e.code] || `Error: ${e.message}`, false);
+        } finally {
+          btn.disabled = false; btn.textContent = 'Crear Usuario';
+        }
+      });
+
+      // Guardar edición
+      document.getElementById('btn-guardar-edit').addEventListener('click', async () => {
+        const uid    = document.getElementById('e-uid').value;
+        const nombre = document.getElementById('e-nombre').value.trim();
+        const rol    = document.getElementById('e-rol').value;
+        const activo = document.getElementById('e-activo').checked;
+        const equipos = rol === 'coach' ? getChecked('e-equipos-checks') : [];
+
+        try {
+          await db.collection('usuarios').doc(uid).update({
+            nombre, rol, activo, equiposAsignados: equipos
+          });
+          // Actualizar UI
+          usersCache[uid] = { ...usersCache[uid], nombre, rol, activo, equiposAsignados: equipos };
+          list.innerHTML = '';
+          Object.values(usersCache).forEach(u => list.appendChild(renderUserCard(u)));
+          closeModal();
+          showToast('Usuario actualizado.', 'success');
+        } catch (e) {
+          showToast('Error al guardar cambios.', 'error');
+        }
+      });
+    }, true); // true = solo admins
+  </script>
+</body>
+</html>

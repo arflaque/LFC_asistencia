@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Lincoln FC — Asistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          'lfc-red':'#BD202F','lfc-navy':'#193560',
+          'lfc-slate':'#6A7B95','lfc-charcoal':'#20242A',
+          'lfc-yellow':'#F5BB18','lfc-blue':'#004A8F'
+        },
+        fontFamily: {
+          'barlow': ['"Barlow Condensed"','sans-serif'],
+          'montserrat': ['Montserrat','sans-serif']
+        }
+      }}
+    }
+  </script>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    body { overscroll-behavior: none; }
+    #lista-jugadores { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  </style>
+</head>
+<body class="bg-lfc-charcoal font-montserrat flex flex-col" style="height:100dvh;height:100vh">
+
+  <!-- Header fijo -->
+  <header class="bg-lfc-navy border-b border-white/10 px-4 py-3 shrink-0">
+    <div class="flex items-center justify-between">
+      <a href="dashboard.html" class="flex items-center gap-2 text-lfc-slate hover:text-white transition">
+        <!-- Flecha atrás -->
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        <span class="text-sm font-medium">Equipos</span>
+      </a>
+      <div id="save-status" class="text-xs text-lfc-slate flex items-center gap-1.5 min-w-[80px] justify-end">
+        <!-- Estado: guardando / guardado -->
+      </div>
+    </div>
+    <div class="mt-2">
+      <h1 id="titulo-equipo" class="text-white font-barlow font-bold text-2xl uppercase tracking-wide leading-none"></h1>
+      <p id="titulo-fecha" class="text-lfc-slate text-xs mt-0.5"></p>
+    </div>
+  </header>
+
+  <!-- Barra de progreso -->
+  <div class="bg-lfc-navy px-4 py-2 border-b border-white/10 shrink-0">
+    <div class="flex items-center justify-between mb-1.5">
+      <span class="text-lfc-slate text-xs">Marcados: <span id="cnt-marcados" class="text-white font-semibold">0</span> / <span id="cnt-total">0</span></span>
+      <div class="flex gap-3">
+        <button id="btn-all-asiste"
+          class="text-xs text-lfc-yellow font-semibold uppercase tracking-wide hover:text-white transition">
+          Marcar todos Asiste
+        </button>
+        <button id="btn-limpiar"
+          class="text-xs text-lfc-slate font-semibold uppercase tracking-wide hover:text-white transition">
+          Limpiar todo
+        </button>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div id="progress-fill" class="progress-bar-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Leyenda de colores -->
+  <div class="bg-lfc-charcoal px-4 py-2 border-b border-white/10 shrink-0">
+    <div class="flex gap-3 flex-wrap">
+      <span class="text-xs text-green-400 font-semibold">A=Asiste</span>
+      <span class="text-xs text-red-400 font-semibold">F=Falta</span>
+      <span class="text-xs text-blue-400 font-semibold">P=Permiso</span>
+      <span class="text-xs text-orange-400 font-semibold">L=Lesión</span>
+      <span class="text-xs text-yellow-400 font-semibold">T=Tarde</span>
+      <span class="text-xs text-lfc-slate font-semibold">S=Suspendido</span>
+    </div>
+  </div>
+
+  <!-- Lista de jugadores (scrolleable) -->
+  <div id="lista-jugadores" class="flex-1 overflow-y-auto">
+    <div id="loading-list" class="flex justify-center items-center py-12">
+      <div class="spinner"></div>
+    </div>
+    <div id="jugadores-container"></div>
+  </div>
+
+  <!-- Botón flotante guardar -->
+  <div class="shrink-0 px-4 py-3 bg-lfc-charcoal border-t border-white/10">
+    <button id="btn-guardar"
+      class="w-full bg-lfc-red hover:bg-red-700 active:bg-red-800 text-white font-barlow font-bold
+             text-xl uppercase tracking-widest py-3.5 rounded-xl transition">
+      Guardar Asistencia
+    </button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/utils.js"></script>
+
+  <script>
+    const params    = new URLSearchParams(location.search);
+    const equipoId  = params.get('equipo');
+    const fecha     = params.get('fecha') || todayStr();
+
+    if (!equipoId) { location.href = 'dashboard.html'; }
+
+    // Estado local de la asistencia: { jugadorId: estado }
+    const estadoLocal = {};
+    let jugadoresList = [];
+    let equipoNombre  = '';
+    let currentUser   = null;
+
+    const saveStatus      = document.getElementById('save-status');
+    const cntMarcados     = document.getElementById('cnt-marcados');
+    const cntTotal        = document.getElementById('cnt-total');
+    const progressFill    = document.getElementById('progress-fill');
+
+    function updateProgress() {
+      const total    = jugadoresList.length;
+      const marcados = Object.keys(estadoLocal).filter(k => estadoLocal[k]).length;
+      cntMarcados.textContent = marcados;
+      cntTotal.textContent    = total;
+      progressFill.style.width = total ? `${Math.round(marcados / total * 100)}%` : '0%';
+    }
+
+    function renderJugador(j) {
+      const row = document.createElement('div');
+      row.className = 'player-row border-b border-white/10 px-4 py-3';
+      row.dataset.id = j.id;
+
+      const nombre = document.createElement('div');
+      nombre.className = 'text-white text-sm font-medium mb-2 leading-tight';
+      nombre.textContent = j.nombre;
+
+      const btns = document.createElement('div');
+      btns.className = 'flex gap-1.5';
+
+      ESTADOS.forEach(est => {
+        const b = document.createElement('button');
+        b.className = 'status-btn flex-1 h-9';
+        b.textContent = est.label;
+        b.title = est.nombre;
+        b.dataset.estado = est.id;
+        b.addEventListener('click', () => marcarEstado(j.id, est.id, row));
+        btns.appendChild(b);
+      });
+
+      row.appendChild(nombre);
+      row.appendChild(btns);
+
+      // Aplicar estado existente
+      if (estadoLocal[j.id]) {
+        applyEstado(row, estadoLocal[j.id]);
+      }
+
+      return row;
+    }
+
+    function applyEstado(row, estadoId) {
+      row.querySelectorAll('.status-btn').forEach(b => {
+        b.classList.remove(...ESTADOS.map(e => e.css));
+        if (b.dataset.estado === estadoId) {
+          const est = ESTADOS.find(e => e.id === estadoId);
+          if (est) b.classList.add(est.css);
+        }
+      });
+    }
+
+    function marcarEstado(jugadorId, estadoId, row) {
+      estadoLocal[jugadorId] = estadoId;
+      applyEstado(row, estadoId);
+      updateProgress();
+      scheduleAutoSave();
+    }
+
+    // Auto-guardado con debounce (1.5 s)
+    let saveTimer = null;
+    function scheduleAutoSave() {
+      saveStatus.innerHTML = '<span class="text-lfc-slate">Guardando…</span>';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(guardar, 1500);
+    }
+
+    async function guardar() {
+      if (!currentUser) return;
+      const registros = {};
+      jugadoresList.forEach(j => {
+        registros[j.id] = {
+          nombre: j.nombre,
+          estado: estadoLocal[j.id] || null
+        };
+      });
+
+      try {
+        await db.collection('asistencia').doc(`${equipoId}_${fecha}`).set({
+          equipo:        equipoId,
+          equipoNombre:  equipoNombre,
+          fecha,
+          registros,
+          creadoPor:     currentUser.uid,
+          ultimaEdicion: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        saveStatus.innerHTML = `<svg class="w-4 h-4 text-green-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          <span class="text-green-400 ml-1">Guardado</span>`;
+      } catch (e) {
+        saveStatus.innerHTML = '<span class="text-red-400">Error al guardar</span>';
+        showToast('Error al guardar. Verifica tu conexión.', 'error');
+      }
+    }
+
+    requireAuth(async (user) => {
+      currentUser = user;
+
+      // Cargar datos del equipo
+      const eqSnap = await db.collection('equipos').doc(equipoId).get();
+      if (!eqSnap.exists) { location.href = 'dashboard.html'; return; }
+      equipoNombre = eqSnap.data().nombre;
+
+      document.getElementById('titulo-equipo').textContent = equipoNombre;
+      document.getElementById('titulo-fecha').textContent  = formatFecha(fecha);
+      document.title = `${equipoNombre} — ${fecha}`;
+
+      // Cargar jugadores
+      jugadoresList = await getJugadores(equipoId);
+
+      // Cargar asistencia existente si existe
+      const asistSnap = await db.collection('asistencia').doc(`${equipoId}_${fecha}`).get();
+      if (asistSnap.exists) {
+        const data = asistSnap.data();
+        Object.entries(data.registros || {}).forEach(([id, rec]) => {
+          if (rec.estado) estadoLocal[id] = rec.estado;
+        });
+        saveStatus.innerHTML = `<svg class="w-4 h-4 text-green-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          <span class="text-green-400 ml-1">Guardado</span>`;
+      }
+
+      // Renderizar lista
+      const container = document.getElementById('jugadores-container');
+      document.getElementById('loading-list').classList.add('hidden');
+
+      if (!jugadoresList.length) {
+        container.innerHTML = `<p class="text-lfc-slate text-center py-8 text-sm">
+          No hay jugadores activos en este equipo.</p>`;
+      } else {
+        jugadoresList.forEach(j => container.appendChild(renderJugador(j)));
+      }
+
+      updateProgress();
+    });
+
+    // Botón "Marcar todos Asiste"
+    document.getElementById('btn-all-asiste').addEventListener('click', () => {
+      jugadoresList.forEach(j => {
+        estadoLocal[j.id] = 'asiste';
+        const row = document.querySelector(`[data-id="${j.id}"]`);
+        if (row) applyEstado(row, 'asiste');
+      });
+      updateProgress();
+      scheduleAutoSave();
+    });
+
+    // Botón "Limpiar todo"
+    document.getElementById('btn-limpiar').addEventListener('click', () => {
+      jugadoresList.forEach(j => {
+        delete estadoLocal[j.id];
+        const row = document.querySelector(`[data-id="${j.id}"]`);
+        if (row) {
+          row.querySelectorAll('.status-btn').forEach(b =>
+            b.classList.remove(...ESTADOS.map(e => e.css))
+          );
+        }
+      });
+      updateProgress();
+      scheduleAutoSave();
+    });
+
+    // Botón manual guardar
+    document.getElementById('btn-guardar').addEventListener('click', async () => {
+      clearTimeout(saveTimer);
+      saveStatus.innerHTML = '<span class="text-lfc-slate">Guardando…</span>';
+      await guardar();
+      showToast('Asistencia guardada.', 'success');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Lincoln FC — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          'lfc-red':'#BD202F','lfc-navy':'#193560',
+          'lfc-slate':'#6A7B95','lfc-charcoal':'#20242A',
+          'lfc-yellow':'#F5BB18','lfc-blue':'#004A8F'
+        },
+        fontFamily: {
+          'barlow': ['"Barlow Condensed"','sans-serif'],
+          'montserrat': ['Montserrat','sans-serif']
+        }
+      }}
+    }
+  </script>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="bg-lfc-charcoal min-h-screen font-montserrat">
+
+  <div id="header-root"></div>
+
+  <main class="max-w-lg mx-auto px-4 py-6">
+
+    <!-- Selector de fecha -->
+    <section class="mb-6">
+      <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-2">
+        Fecha de la sesión
+      </label>
+      <input id="inp-fecha" type="date"
+        class="w-full bg-lfc-navy text-white rounded-xl px-4 py-3 text-sm border border-lfc-slate/20
+               focus:border-lfc-red focus:outline-none appearance-none transition cursor-pointer">
+    </section>
+
+    <!-- Equipos -->
+    <section>
+      <p class="text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-3">
+        Selecciona un equipo
+      </p>
+      <div id="equipos-list" class="grid grid-cols-2 gap-3"></div>
+      <div id="equipos-loading" class="flex justify-center py-8">
+        <div class="spinner"></div>
+      </div>
+    </section>
+
+    <!-- Panel Admin (solo admins) -->
+    <section id="admin-section" class="hidden mt-8 pt-6 border-t border-lfc-slate/20">
+      <p class="text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-3">
+        Administración
+      </p>
+      <div class="grid grid-cols-2 gap-3">
+        <a href="admin-usuarios.html"
+          class="bg-lfc-navy rounded-xl p-4 flex flex-col gap-1 hover:bg-lfc-blue/30 transition no-underline">
+          <span class="text-white font-barlow font-bold text-xl uppercase tracking-wide">Usuarios</span>
+          <span class="text-lfc-slate text-xs">Crear y gestionar cuentas</span>
+        </a>
+        <a href="admin-equipos.html"
+          class="bg-lfc-navy rounded-xl p-4 flex flex-col gap-1 hover:bg-lfc-blue/30 transition no-underline">
+          <span class="text-white font-barlow font-bold text-xl uppercase tracking-wide">Equipos</span>
+          <span class="text-lfc-slate text-xs">Jugadores y categorías</span>
+        </a>
+        <a href="reportes.html"
+          class="col-span-2 bg-lfc-navy rounded-xl p-4 flex flex-col gap-1 hover:bg-lfc-blue/30 transition no-underline">
+          <span class="text-white font-barlow font-bold text-xl uppercase tracking-wide">Reportes</span>
+          <span class="text-lfc-slate text-xs">Estadísticas y porcentajes de asistencia</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Reportes para coaches -->
+    <section id="coach-reports" class="hidden mt-6">
+      <a href="reportes.html"
+        class="block bg-lfc-navy rounded-xl p-4 hover:bg-lfc-blue/30 transition no-underline">
+        <span class="text-white font-barlow font-bold text-xl uppercase tracking-wide">Reportes</span>
+        <p class="text-lfc-slate text-xs mt-1">Ver estadísticas de asistencia</p>
+      </a>
+    </section>
+
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/utils.js"></script>
+
+  <script>
+    // Fecha por defecto: hoy
+    const inpFecha = document.getElementById('inp-fecha');
+    inpFecha.value = todayStr();
+
+    requireAuth(async (user) => {
+      // Header
+      renderHeader(document.getElementById('header-root'), user, 'Lincoln FC');
+
+      // Mostrar secciones según rol
+      if (user.rol === 'admin') {
+        document.getElementById('admin-section').classList.remove('hidden');
+      } else {
+        document.getElementById('coach-reports').classList.remove('hidden');
+      }
+
+      // Cargar equipos
+      let equipos = await getEquipos();
+
+      // Si es coach, filtrar por equipos asignados
+      if (user.rol !== 'admin' && user.equiposAsignados?.length) {
+        equipos = equipos.filter(e => user.equiposAsignados.includes(e.id));
+      }
+
+      const list    = document.getElementById('equipos-list');
+      const loading = document.getElementById('equipos-loading');
+      loading.classList.add('hidden');
+
+      if (!equipos.length) {
+        list.innerHTML = `<p class="col-span-2 text-lfc-slate text-sm text-center py-4">
+          No tienes equipos asignados. Contacta al administrador.</p>`;
+        return;
+      }
+
+      equipos.forEach(eq => {
+        const btn = document.createElement('button');
+        btn.className = 'bg-lfc-navy rounded-xl p-5 text-left hover:bg-lfc-blue/40 active:scale-95 transition';
+        btn.innerHTML = `
+          <div class="text-lfc-slate text-xs uppercase tracking-widest mb-1">Equipo</div>
+          <div class="text-white font-barlow font-bold text-2xl uppercase tracking-wide">${eq.nombre}</div>`;
+        btn.addEventListener('click', () => {
+          const fecha = inpFecha.value || todayStr();
+          location.href = `asistencia.html?equipo=${eq.id}&fecha=${fecha}`;
+        });
+        list.appendChild(btn);
+      });
+    });
+  </script>
+</body>
+</html>

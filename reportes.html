@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Lincoln FC — Reportes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          'lfc-red':'#BD202F','lfc-navy':'#193560',
+          'lfc-slate':'#6A7B95','lfc-charcoal':'#20242A',
+          'lfc-yellow':'#F5BB18','lfc-blue':'#004A8F'
+        },
+        fontFamily: {
+          'barlow': ['"Barlow Condensed"','sans-serif'],
+          'montserrat': ['Montserrat','sans-serif']
+        }
+      }}
+    }
+  </script>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="bg-lfc-charcoal min-h-screen font-montserrat">
+
+  <div id="header-root"></div>
+
+  <main class="max-w-lg mx-auto px-4 py-6">
+
+    <!-- Filtros -->
+    <section class="bg-lfc-navy rounded-2xl p-5 mb-6">
+      <h2 class="text-white font-barlow font-bold text-2xl uppercase tracking-wide mb-4">Filtros</h2>
+      <div class="grid gap-3">
+        <div>
+          <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Equipo</label>
+          <select id="sel-equipo"
+            class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+            <option value="">— Selecciona equipo —</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Desde</label>
+            <input id="sel-desde" type="date"
+              class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Hasta</label>
+            <input id="sel-hasta" type="date"
+              class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+          </div>
+        </div>
+        <button id="btn-generar"
+          class="w-full bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-xl uppercase tracking-widest py-3 rounded-xl transition">
+          Generar Reporte
+        </button>
+      </div>
+    </section>
+
+    <!-- Resultados -->
+    <section id="results-section" class="hidden">
+
+      <!-- KPIs -->
+      <div class="grid grid-cols-3 gap-3 mb-5">
+        <div class="bg-lfc-navy rounded-xl p-3 text-center">
+          <p class="text-lfc-slate text-xs uppercase tracking-widest">Sesiones</p>
+          <p id="kpi-sesiones" class="text-white font-barlow font-bold text-3xl mt-1">0</p>
+        </div>
+        <div class="bg-lfc-navy rounded-xl p-3 text-center">
+          <p class="text-lfc-slate text-xs uppercase tracking-widest">Jugadores</p>
+          <p id="kpi-jugadores" class="text-white font-barlow font-bold text-3xl mt-1">0</p>
+        </div>
+        <div class="bg-lfc-navy rounded-xl p-3 text-center">
+          <p class="text-lfc-slate text-xs uppercase tracking-widest">% Prom.</p>
+          <p id="kpi-prom" class="text-white font-barlow font-bold text-3xl mt-1">—</p>
+        </div>
+      </div>
+
+      <!-- Gráfica de asistencia por sesión -->
+      <div class="bg-lfc-navy rounded-2xl p-4 mb-5">
+        <h3 class="text-white font-barlow font-bold text-lg uppercase tracking-wide mb-3">Asistencia por sesión</h3>
+        <div style="position:relative;height:180px">
+          <canvas id="chart-sesiones"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabla por jugador -->
+      <div class="bg-lfc-navy rounded-2xl p-4 mb-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-white font-barlow font-bold text-lg uppercase tracking-wide">Por jugador</h3>
+          <button id="btn-csv"
+            class="text-lfc-yellow text-xs font-semibold uppercase tracking-wide hover:text-white transition">
+            Exportar CSV
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs min-w-[380px]">
+            <thead>
+              <tr class="text-lfc-slate uppercase tracking-wider border-b border-white/10">
+                <th class="text-left py-2 pr-2 font-semibold">Jugador</th>
+                <th class="text-center py-2 px-1 font-semibold">%</th>
+                <th class="text-center py-2 px-1 font-semibold text-green-400">A</th>
+                <th class="text-center py-2 px-1 font-semibold text-red-400">F</th>
+                <th class="text-center py-2 px-1 font-semibold text-blue-400">P</th>
+                <th class="text-center py-2 px-1 font-semibold text-orange-400">L</th>
+                <th class="text-center py-2 px-1 font-semibold text-yellow-400">T</th>
+                <th class="text-center py-2 px-1 font-semibold text-lfc-slate">S</th>
+                <th class="text-center py-2 pl-1 font-semibold text-lfc-slate/50">NM</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-cuerpo"></tbody>
+          </table>
+        </div>
+        <p class="text-lfc-slate text-xs mt-2">A=Asiste · F=Falta · P=Permiso · L=Lesión · T=Tarde · S=Suspendido · NM=No Marcado</p>
+      </div>
+
+    </section>
+
+    <div id="loading-report" class="hidden flex justify-center py-8">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="msg-vacio" class="hidden text-center py-8 text-lfc-slate text-sm">
+      No hay registros de asistencia en ese rango de fechas.
+    </div>
+
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/utils.js"></script>
+
+  <script>
+    let chartSesiones = null;
+    let reportData    = [];
+
+    function pct(n, total) {
+      return total ? Math.round(n / total * 100) : 0;
+    }
+
+    function colorPct(p) {
+      if (p >= 80) return '#16a34a';
+      if (p >= 60) return '#F5BB18';
+      return '#BD202F';
+    }
+
+    requireAuth(async (user) => {
+      renderHeader(document.getElementById('header-root'), user, 'Reportes');
+
+      // Cargar equipos en selector
+      let equipos = await getEquipos();
+      if (user.rol !== 'admin' && user.equiposAsignados?.length) {
+        equipos = equipos.filter(e => user.equiposAsignados.includes(e.id));
+      }
+      const selEq = document.getElementById('sel-equipo');
+      equipos.forEach(eq => {
+        selEq.innerHTML += `<option value="${eq.id}">${eq.nombre}</option>`;
+      });
+
+      // Fechas por defecto: último mes
+      const hoy   = todayStr();
+      const hace30 = new Date();
+      hace30.setDate(hace30.getDate() - 30);
+      const desde30 = `${hace30.getFullYear()}-${String(hace30.getMonth()+1).padStart(2,'0')}-${String(hace30.getDate()).padStart(2,'0')}`;
+      document.getElementById('sel-desde').value = desde30;
+      document.getElementById('sel-hasta').value = hoy;
+
+      document.getElementById('btn-generar').addEventListener('click', generarReporte);
+
+      // CSV
+      document.getElementById('btn-csv').addEventListener('click', exportarCSV);
+    });
+
+    async function generarReporte() {
+      const equipoId = document.getElementById('sel-equipo').value;
+      const desde    = document.getElementById('sel-desde').value;
+      const hasta    = document.getElementById('sel-hasta').value;
+
+      if (!equipoId || !desde || !hasta) {
+        showToast('Selecciona equipo y rango de fechas.', 'error'); return;
+      }
+
+      document.getElementById('results-section').classList.add('hidden');
+      document.getElementById('msg-vacio').classList.add('hidden');
+      document.getElementById('loading-report').classList.remove('hidden');
+
+      try {
+        // Consultar asistencia
+        const snap = await db.collection('asistencia')
+          .where('equipo', '==', equipoId)
+          .where('fecha', '>=', desde)
+          .where('fecha', '<=', hasta)
+          .get();
+
+        document.getElementById('loading-report').classList.add('hidden');
+
+        if (snap.empty) {
+          document.getElementById('msg-vacio').classList.remove('hidden');
+          return;
+        }
+
+        const sesiones = snap.docs.map(d => d.data()).sort((a, b) => a.fecha.localeCompare(b.fecha));
+        reportData = sesiones;
+
+        // Agregar por jugador
+        const porJugador = {};
+        sesiones.forEach(ses => {
+          Object.entries(ses.registros || {}).forEach(([jId, rec]) => {
+            if (!porJugador[jId]) {
+              porJugador[jId] = { nombre: rec.nombre, asiste: 0, falta: 0, permiso: 0, lesion: 0, tarde: 0, suspendido: 0, nm: 0, total: 0 };
+            }
+            const p = porJugador[jId];
+            p.total++;
+            const est = rec.estado;
+            if (est && p.hasOwnProperty(est)) p[est]++;
+            else if (!est) p.nm++;
+          });
+        });
+
+        const jugadores = Object.values(porJugador).sort((a, b) => {
+          const pa = pct(a.asiste + a.tarde, a.total);
+          const pb = pct(b.asiste + b.tarde, b.total);
+          return pb - pa; // mayor % primero
+        });
+
+        // KPIs
+        document.getElementById('kpi-sesiones').textContent  = sesiones.length;
+        document.getElementById('kpi-jugadores').textContent = jugadores.length;
+        const promGlobal = jugadores.length
+          ? Math.round(jugadores.reduce((s, j) => s + pct(j.asiste + j.tarde, j.total), 0) / jugadores.length)
+          : 0;
+        document.getElementById('kpi-prom').textContent = `${promGlobal}%`;
+
+        // Tabla
+        const tbody = document.getElementById('tabla-cuerpo');
+        tbody.innerHTML = '';
+        jugadores.forEach(j => {
+          const p = pct(j.asiste + j.tarde, j.total);
+          tbody.innerHTML += `
+            <tr class="border-b border-white/5 hover:bg-white/5">
+              <td class="py-2 pr-2 text-white font-medium">${j.nombre}</td>
+              <td class="text-center px-1 font-bold" style="color:${colorPct(p)}">${p}%</td>
+              <td class="text-center px-1 text-green-400">${j.asiste}</td>
+              <td class="text-center px-1 text-red-400">${j.falta}</td>
+              <td class="text-center px-1 text-blue-400">${j.permiso}</td>
+              <td class="text-center px-1 text-orange-400">${j.lesion}</td>
+              <td class="text-center px-1 text-yellow-400">${j.tarde}</td>
+              <td class="text-center px-1 text-lfc-slate">${j.suspendido}</td>
+              <td class="text-center pl-1 text-lfc-slate/50">${j.nm}</td>
+            </tr>`;
+        });
+
+        // Gráfica por sesión
+        const labels = sesiones.map(s => s.fecha.substring(5)); // MM-DD
+        const dataPoints = sesiones.map(s => {
+          const regs = Object.values(s.registros || {});
+          const total = regs.length;
+          if (!total) return 0;
+          const presentes = regs.filter(r => r.estado === 'asiste' || r.estado === 'tarde').length;
+          return Math.round(presentes / total * 100);
+        });
+
+        if (chartSesiones) chartSesiones.destroy();
+        const ctx = document.getElementById('chart-sesiones').getContext('2d');
+        chartSesiones = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: '% Asistencia',
+              data: dataPoints,
+              backgroundColor: dataPoints.map(v => v >= 80 ? '#16a34a88' : v >= 60 ? '#F5BB1888' : '#BD202F88'),
+              borderColor:     dataPoints.map(v => v >= 80 ? '#16a34a' : v >= 60 ? '#F5BB18' : '#BD202F'),
+              borderWidth: 1,
+              borderRadius: 4,
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { min: 0, max: 100, ticks: { color: '#6A7B95', font: { size: 10 } },
+                   grid: { color: 'rgba(255,255,255,0.06)' } },
+              x: { ticks: { color: '#6A7B95', font: { size: 10 } },
+                   grid: { display: false } }
+            }
+          }
+        });
+
+        document.getElementById('results-section').classList.remove('hidden');
+
+      } catch (e) {
+        document.getElementById('loading-report').classList.add('hidden');
+        showToast('Error al generar el reporte. Verifica los índices de Firestore.', 'error');
+        console.error(e);
+      }
+    }
+
+    function exportarCSV() {
+      if (!reportData.length) return;
+
+      const equipoId = document.getElementById('sel-equipo').value;
+      const desde    = document.getElementById('sel-desde').value;
+      const hasta    = document.getElementById('sel-hasta').value;
+
+      // Recopilar jugadores
+      const porJugador = {};
+      const fechas = [];
+      reportData.forEach(s => {
+        if (!fechas.includes(s.fecha)) fechas.push(s.fecha);
+        Object.entries(s.registros || {}).forEach(([jId, rec]) => {
+          if (!porJugador[jId]) porJugador[jId] = { nombre: rec.nombre, sesiones: {} };
+          porJugador[jId].sesiones[s.fecha] = rec.estado || '';
+        });
+      });
+      fechas.sort();
+
+      const cols = ['Jugador', ...fechas, '% Asistencia'];
+      const rows = [cols];
+
+      Object.values(porJugador).forEach(j => {
+        let asiste = 0, total = 0;
+        const row = [j.nombre];
+        fechas.forEach(f => {
+          const est = j.sesiones[f] || 'NM';
+          row.push(est);
+          if (est !== 'NM') { total++; if (est === 'asiste' || est === 'tarde') asiste++; }
+        });
+        row.push(total ? `${Math.round(asiste/total*100)}%` : '—');
+        rows.push(row);
+      });
+
+      const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `asistencia_${equipoId}_${desde}_${hasta}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
