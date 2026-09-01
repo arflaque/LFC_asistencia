@@ -24,6 +24,45 @@
     }
   </script>
   <link rel="stylesheet" href="css/main.css">
+  <style>
+    .mas-print-header { display: none; }
+
+    @media print {
+      /* Solo muestra el reporte master */
+      body * { visibility: hidden; }
+      #mas-results, #mas-results * { visibility: visible; }
+      #mas-results {
+        position: absolute; top: 0; left: 0;
+        width: 100%; padding: 20px;
+      }
+      body { background: white !important; }
+
+      /* Cabecera solo en impresión */
+      .mas-print-header { display: block !important; }
+
+      /* Fondos oscuros → claros */
+      #mas-results [class*="bg-lfc-navy"] {
+        background-color: #eef2f7 !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      /* Textos claros → oscuros */
+      #mas-results [class*="text-white"]        { color: #1a202c !important; }
+      #mas-results [class*="text-lfc-slate"]    { color: #4a5568 !important; }
+      #mas-results [class*="border-white"]      { border-color: #e2e8f0 !important; }
+      /* Mantener colores de estado */
+      #mas-results [class*="text-green-400"]    { color: #15803d !important; }
+      #mas-results [class*="text-red-400"]      { color: #b91c1c !important; }
+      #mas-results [class*="text-blue-400"]     { color: #1d4ed8 !important; }
+      #mas-results [class*="text-orange-400"]   { color: #c2410c !important; }
+      #mas-results [class*="text-yellow-400"]   { color: #a16207 !important; }
+
+      /* Saltos de página entre equipos */
+      #mas-tablas > div { page-break-inside: avoid; }
+
+      /* Ocultar botón de impresión */
+      #btn-print-mas { display: none !important; }
+    }
+  </style>
 </head>
 <body class="bg-lfc-charcoal min-h-screen font-montserrat">
 
@@ -272,7 +311,26 @@
 
       <section id="mas-results" class="hidden">
 
-        <h3 class="text-white font-barlow font-bold text-xl uppercase tracking-wide mb-3">Rendimiento por Equipo</h3>
+        <!-- Solo visible al imprimir -->
+        <div class="mas-print-header mb-5">
+          <p style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;text-transform:uppercase;letter-spacing:3px;color:#193560">
+            Lincoln FC — Reporte Master
+          </p>
+          <p id="mas-print-periodo" style="font-size:11px;color:#4a5568;margin-top:2px"></p>
+        </div>
+
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-white font-barlow font-bold text-xl uppercase tracking-wide">Rendimiento por Equipo</h3>
+          <button id="btn-print-mas" onclick="window.print()"
+            class="flex items-center gap-1.5 bg-lfc-navy hover:bg-lfc-blue border border-lfc-slate/30 text-white text-xs font-semibold px-3 py-2 rounded-xl transition">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+            </svg>
+            Imprimir / PDF
+          </button>
+        </div>
+
         <div id="mas-cards" class="grid grid-cols-2 gap-3 mb-7"></div>
 
         <h3 class="text-white font-barlow font-bold text-xl uppercase tracking-wide mb-3">Detalle por Equipo</h3>
@@ -653,6 +711,9 @@
       if (!resultados.length) { document.getElementById('mas-vacio').classList.remove('hidden'); return; }
 
       resultados.sort((a,b) => b.prom - a.prom);
+
+      // Periodo en encabezado de impresión
+      document.getElementById('mas-print-periodo').textContent = `${formatFecha(desde)} — ${formatFecha(hasta)}`;
 
       // Tarjetas resumen
       const cards = document.getElementById('mas-cards');
