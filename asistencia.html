@@ -46,7 +46,10 @@
       </div>
     </div>
     <div class="mt-2">
-      <h1 id="titulo-equipo" class="text-white font-barlow font-bold text-2xl uppercase tracking-wide leading-none"></h1>
+      <div class="flex items-center gap-2">
+        <h1 id="titulo-equipo" class="text-white font-barlow font-bold text-2xl uppercase tracking-wide leading-none"></h1>
+        <span id="tipo-badge" class="text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-md"></span>
+      </div>
       <p id="titulo-fecha" class="text-lfc-slate text-xs mt-0.5"></p>
     </div>
   </header>
@@ -111,6 +114,9 @@
     const params    = new URLSearchParams(location.search);
     const equipoId  = params.get('equipo');
     const fecha     = params.get('fecha') || todayStr();
+    const tipo      = params.get('tipo') || 'entrenamiento';
+    const esPartido = tipo === 'partido';
+    const ESTADOS_ACTIVOS = esPartido ? ESTADOS_PARTIDO : ESTADOS;
 
     if (!equipoId) { location.href = 'dashboard.html'; }
 
@@ -145,9 +151,9 @@
       const btns = document.createElement('div');
       btns.className = 'flex gap-1.5';
 
-      ESTADOS.forEach(est => {
+      ESTADOS_ACTIVOS.forEach(est => {
         const b = document.createElement('button');
-        b.className = 'status-btn flex-1 h-9';
+        b.className = `status-btn flex-1 ${esPartido ? 'h-9 text-xs' : 'h-9'}`;
         b.textContent = est.label;
         b.title = est.nombre;
         b.dataset.estado = est.id;
@@ -168,9 +174,9 @@
 
     function applyEstado(row, estadoId) {
       row.querySelectorAll('.status-btn').forEach(b => {
-        b.classList.remove(...ESTADOS.map(e => e.css));
+        b.classList.remove(...ESTADOS_ACTIVOS.map(e => e.css));
         if (b.dataset.estado === estadoId) {
-          const est = ESTADOS.find(e => e.id === estadoId);
+          const est = ESTADOS_ACTIVOS.find(e => e.id === estadoId);
           if (est) b.classList.add(est.css);
         }
       });
@@ -206,6 +212,7 @@
           equipo:        equipoId,
           equipoNombre:  equipoNombre,
           fecha,
+          tipo,
           registros,
           creadoPor:     currentUser.uid,
           ultimaEdicion: firebase.firestore.FieldValue.serverTimestamp()
@@ -231,6 +238,25 @@
       document.getElementById('titulo-equipo').textContent = equipoNombre;
       document.getElementById('titulo-fecha').textContent  = formatFecha(fecha);
       document.title = `${equipoNombre} — ${fecha}`;
+
+      // Badge de tipo
+      const badge = document.getElementById('tipo-badge');
+      if (esPartido) {
+        badge.textContent = 'Partido';
+        badge.className += ' bg-lfc-red text-white';
+      } else {
+        badge.textContent = 'Entreno';
+        badge.className += ' bg-lfc-blue/30 text-lfc-slate';
+      }
+
+      // Ajustar leyenda según tipo
+      if (esPartido) {
+        document.querySelector('.flex.gap-3.flex-wrap').innerHTML = `
+          <span class="text-xs text-green-400 font-semibold">A=Asiste</span>
+          <span class="text-xs text-lfc-slate font-semibold" style="color:#94a3b8">NC=No Convocado</span>
+          <span class="text-xs font-semibold" style="color:#a78bfa">ND=No Disponible TS</span>
+          <span class="text-xs font-semibold" style="color:#fca5a5">FC=Falta/Convocado</span>`;
+      }
 
       // Cargar jugadores
       jugadoresList = await getJugadores(equipoId);
@@ -279,7 +305,7 @@
         const row = document.querySelector(`[data-id="${j.id}"]`);
         if (row) {
           row.querySelectorAll('.status-btn').forEach(b =>
-            b.classList.remove(...ESTADOS.map(e => e.css))
+            b.classList.remove(...ESTADOS_ACTIVOS.map(e => e.css))
           );
         }
       });

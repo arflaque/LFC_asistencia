@@ -113,6 +113,14 @@
                 class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
             </div>
           </div>
+          <div>
+            <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Tipo de sesión</label>
+            <select id="eq-tipo"
+              class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+              <option value="entrenamiento">Entrenamiento</option>
+              <option value="partido">Partido</option>
+            </select>
+          </div>
           <button id="btn-generar-eq"
             class="w-full bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-xl uppercase tracking-widest py-3 rounded-xl transition">
             Generar Reporte
@@ -171,7 +179,7 @@
               <tbody id="eq-tabla-cuerpo"></tbody>
             </table>
           </div>
-          <p class="text-lfc-slate text-xs mt-2">A=Asiste · F=Falta · P=Permiso · L=Lesión · T=Tarde · S=Suspendido · NM=No Marcado</p>
+          <p id="eq-leyenda" class="text-lfc-slate text-xs mt-2">A=Asiste · F=Falta · P=Permiso · L=Lesión · T=Tarde · S=Suspendido · NM=No Marcado</p>
         </div>
       </section>
     </div>
@@ -210,6 +218,14 @@
                 class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
             </div>
           </div>
+          <div>
+            <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Tipo de sesión</label>
+            <select id="jug-tipo"
+              class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+              <option value="entrenamiento">Entrenamiento</option>
+              <option value="partido">Partido</option>
+            </select>
+          </div>
           <button id="btn-generar-jug"
             class="w-full bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-xl uppercase tracking-widest py-3 rounded-xl transition">
             Generar Reporte
@@ -241,7 +257,7 @@
         </div>
 
         <!-- Contadores por estado -->
-        <div class="grid grid-cols-6 gap-2 mb-5">
+        <div id="jug-counters" class="grid grid-cols-6 gap-2 mb-5">
           <div class="bg-lfc-navy rounded-xl p-2 text-center">
             <p class="text-green-400  text-xs font-bold uppercase">A</p>
             <p id="jug-k-a"  class="text-white font-barlow font-bold text-xl mt-0.5">0</p>
@@ -299,6 +315,14 @@
             <input id="mas-hasta" type="date"
               class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
           </div>
+        </div>
+        <div>
+          <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Tipo de sesión</label>
+          <select id="mas-tipo"
+            class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+            <option value="entrenamiento">Entrenamiento</option>
+            <option value="partido">Partido</option>
+          </select>
         </div>
         <button id="btn-generar-mas"
           class="w-full bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-xl uppercase tracking-widest py-3 rounded-xl transition">
@@ -380,49 +404,93 @@
     URL.revokeObjectURL(url);
   }
 
-  // Agrega los registros de sesiones en un mapa por jugador
-  function agregarPorJugador(sesiones) {
+  // Agrega registros de sesiones en un mapa por jugador, respetando el tipo
+  function agregarPorJugador(sesiones, esPartido) {
     const map = {};
     sesiones.forEach(ses => {
       Object.entries(ses.registros || {}).forEach(([jId, rec]) => {
-        if (!map[jId]) map[jId] = { nombre: rec.nombre, asiste:0, falta:0, permiso:0, lesion:0, tarde:0, suspendido:0, nm:0, total:0 };
+        if (!map[jId]) {
+          map[jId] = esPartido
+            ? { nombre: rec.nombre, asiste:0, no_convocado:0, no_disponible:0, falta_convocado:0, nm:0, total:0 }
+            : { nombre: rec.nombre, asiste:0, falta:0, permiso:0, lesion:0, tarde:0, suspendido:0, nm:0, total:0 };
+        }
         const j = map[jId];
         j.total++;
         const e = rec.estado;
-        if (e && j.hasOwnProperty(e)) j[e]++; else if (!e) j.nm++;
+        if (e && Object.prototype.hasOwnProperty.call(j, e)) j[e]++; else if (!e) j.nm++;
       });
     });
-    return Object.values(map).sort((a, b) => pct(b.asiste+b.tarde,b.total) - pct(a.asiste+a.tarde,a.total));
+    return esPartido
+      ? Object.values(map).sort((a, b) => pct(b.asiste, b.total) - pct(a.asiste, a.total))
+      : Object.values(map).sort((a, b) => pct(b.asiste+b.tarde, b.total) - pct(a.asiste+a.tarde, a.total));
+  }
+
+  // Header HTML para la tabla según tipo
+  function theadHtml(esPartido) {
+    if (esPartido) return `
+      <th class="text-left py-2 pr-2 font-semibold">Jugador</th>
+      <th class="text-center py-2 px-1 font-semibold">%</th>
+      <th class="text-center py-2 px-1 font-semibold text-green-400">A</th>
+      <th class="text-center py-2 px-1 font-semibold" style="color:#94a3b8">NC</th>
+      <th class="text-center py-2 px-1 font-semibold" style="color:#a78bfa">ND</th>
+      <th class="text-center py-2 px-1 font-semibold" style="color:#fca5a5">FC</th>
+      <th class="text-center py-2 pl-1 font-semibold text-lfc-slate/50">NM</th>`;
+    return `
+      <th class="text-left py-2 pr-2 font-semibold">Jugador</th>
+      <th class="text-center py-2 px-1 font-semibold">%</th>
+      <th class="text-center py-2 px-1 font-semibold text-green-400">A</th>
+      <th class="text-center py-2 px-1 font-semibold text-red-400">F</th>
+      <th class="text-center py-2 px-1 font-semibold text-blue-400">P</th>
+      <th class="text-center py-2 px-1 font-semibold text-orange-400">L</th>
+      <th class="text-center py-2 px-1 font-semibold text-yellow-400">T</th>
+      <th class="text-center py-2 px-1 font-semibold text-lfc-slate">S</th>
+      <th class="text-center py-2 pl-1 font-semibold text-lfc-slate/50">NM</th>`;
   }
 
   // Renderiza filas de tabla de jugadores en un <tbody id>
-  function renderFilasJugadores(tbodyId, jugadores) {
+  function renderFilasJugadores(tbodyId, jugadores, esPartido) {
     const tbody = document.getElementById(tbodyId);
     tbody.innerHTML = '';
     jugadores.forEach(j => {
-      const p = pct(j.asiste + j.tarde, j.total);
-      tbody.innerHTML += `
-        <tr class="border-b border-white/5 hover:bg-white/5">
-          <td class="py-2 pr-2 text-white font-medium">${j.nombre}</td>
-          <td class="text-center px-1 font-bold" style="color:${colorPct(p)}">${p}%</td>
-          <td class="text-center px-1 text-green-400">${j.asiste}</td>
-          <td class="text-center px-1 text-red-400">${j.falta}</td>
-          <td class="text-center px-1 text-blue-400">${j.permiso}</td>
-          <td class="text-center px-1 text-orange-400">${j.lesion}</td>
-          <td class="text-center px-1 text-yellow-400">${j.tarde}</td>
-          <td class="text-center px-1 text-lfc-slate">${j.suspendido}</td>
-          <td class="text-center pl-1 text-lfc-slate/50">${j.nm}</td>
-        </tr>`;
+      const p = esPartido ? pct(j.asiste, j.total) : pct(j.asiste + j.tarde, j.total);
+      if (esPartido) {
+        tbody.innerHTML += `
+          <tr class="border-b border-white/5 hover:bg-white/5">
+            <td class="py-2 pr-2 text-white font-medium">${j.nombre}</td>
+            <td class="text-center px-1 font-bold" style="color:${colorPct(p)}">${p}%</td>
+            <td class="text-center px-1 text-green-400">${j.asiste}</td>
+            <td class="text-center px-1" style="color:#94a3b8">${j.no_convocado}</td>
+            <td class="text-center px-1" style="color:#a78bfa">${j.no_disponible}</td>
+            <td class="text-center px-1" style="color:#fca5a5">${j.falta_convocado}</td>
+            <td class="text-center pl-1 text-lfc-slate/50">${j.nm}</td>
+          </tr>`;
+      } else {
+        tbody.innerHTML += `
+          <tr class="border-b border-white/5 hover:bg-white/5">
+            <td class="py-2 pr-2 text-white font-medium">${j.nombre}</td>
+            <td class="text-center px-1 font-bold" style="color:${colorPct(p)}">${p}%</td>
+            <td class="text-center px-1 text-green-400">${j.asiste}</td>
+            <td class="text-center px-1 text-red-400">${j.falta}</td>
+            <td class="text-center px-1 text-blue-400">${j.permiso}</td>
+            <td class="text-center px-1 text-orange-400">${j.lesion}</td>
+            <td class="text-center px-1 text-yellow-400">${j.tarde}</td>
+            <td class="text-center px-1 text-lfc-slate">${j.suspendido}</td>
+            <td class="text-center pl-1 text-lfc-slate/50">${j.nm}</td>
+          </tr>`;
+      }
     });
   }
 
   const ESTADO_UI = {
-    asiste:     { label:'Asiste',     cls:'text-green-400',  bg:'bg-green-900/30' },
-    falta:      { label:'Falta',      cls:'text-red-400',    bg:'bg-red-900/30' },
-    permiso:    { label:'Permiso',    cls:'text-blue-400',   bg:'bg-blue-900/30' },
-    lesion:     { label:'Lesión',     cls:'text-orange-400', bg:'bg-orange-900/30' },
-    tarde:      { label:'Tarde',      cls:'text-yellow-400', bg:'bg-yellow-900/30' },
-    suspendido: { label:'Suspendido', cls:'text-lfc-slate',  bg:'bg-white/5' },
+    asiste:          { label:'Asiste',           cls:'text-green-400',  bg:'bg-green-900/30' },
+    falta:           { label:'Falta',            cls:'text-red-400',    bg:'bg-red-900/30' },
+    permiso:         { label:'Permiso',          cls:'text-blue-400',   bg:'bg-blue-900/30' },
+    lesion:          { label:'Lesión',           cls:'text-orange-400', bg:'bg-orange-900/30' },
+    tarde:           { label:'Tarde',            cls:'text-yellow-400', bg:'bg-yellow-900/30' },
+    suspendido:      { label:'Suspendido',       cls:'text-lfc-slate',  bg:'bg-white/5' },
+    no_convocado:    { label:'NC',               cls:'',                bg:'bg-slate-900/40',   style:'color:#94a3b8' },
+    no_disponible:   { label:'ND',               cls:'',                bg:'bg-violet-900/30',  style:'color:#a78bfa' },
+    falta_convocado: { label:'FC',               cls:'',                bg:'bg-rose-900/30',    style:'color:#fca5a5' },
   };
 
   // ─── Tabs ─────────────────────────────────────────────────────
@@ -485,9 +553,11 @@
   //  REPORTE 1 — POR EQUIPO
   // ═══════════════════════════════════════════════════════════
   async function generarReporteEquipo() {
-    const equipoId = document.getElementById('eq-sel-equipo').value;
-    const desde    = document.getElementById('eq-desde').value;
-    const hasta    = document.getElementById('eq-hasta').value;
+    const equipoId  = document.getElementById('eq-sel-equipo').value;
+    const desde     = document.getElementById('eq-desde').value;
+    const hasta     = document.getElementById('eq-hasta').value;
+    const tipoSel   = document.getElementById('eq-tipo').value;
+    const esPartido = tipoSel === 'partido';
     if (!equipoId || !desde || !hasta) { showToast('Selecciona equipo y rango de fechas.','error'); return; }
 
     document.getElementById('eq-results').classList.add('hidden');
@@ -504,12 +574,16 @@
       document.getElementById('eq-loading').classList.add('hidden');
       if (snap.empty) { document.getElementById('eq-vacio').classList.remove('hidden'); return; }
 
-      const sesiones = snap.docs.map(d => d.data()).sort((a,b) => a.fecha.localeCompare(b.fecha));
-      eqReportData   = sesiones;
-      const jugadores = agregarPorJugador(sesiones);
+      // Filtrar por tipo client-side
+      const todasSesiones = snap.docs.map(d => d.data()).sort((a,b) => a.fecha.localeCompare(b.fecha));
+      const sesiones      = todasSesiones.filter(s => (s.tipo || 'entrenamiento') === tipoSel);
+      if (!sesiones.length) { document.getElementById('eq-vacio').classList.remove('hidden'); return; }
+
+      eqReportData = sesiones;
+      const jugadores = agregarPorJugador(sesiones, esPartido);
 
       const prom = jugadores.length
-        ? Math.round(jugadores.reduce((s,j) => s + pct(j.asiste+j.tarde, j.total), 0) / jugadores.length)
+        ? Math.round(jugadores.reduce((s,j) => s + (esPartido ? pct(j.asiste,j.total) : pct(j.asiste+j.tarde,j.total)), 0) / jugadores.length)
         : 0;
 
       document.getElementById('eq-kpi-sesiones').textContent  = sesiones.length;
@@ -517,14 +591,23 @@
       document.getElementById('eq-kpi-prom').textContent      = `${prom}%`;
       document.getElementById('eq-kpi-prom').style.color      = colorPct(prom);
 
-      renderFilasJugadores('eq-tabla-cuerpo', jugadores);
+      // Actualizar cabecera de tabla
+      document.getElementById('eq-tabla-header').innerHTML = theadHtml(esPartido);
+      // Actualizar leyenda
+      document.getElementById('eq-leyenda').textContent = esPartido
+        ? 'A=Asiste · NC=No Convocado · ND=No Disponible TS · FC=Falta/Convocado · NM=No Marcado'
+        : 'A=Asiste · F=Falta · P=Permiso · L=Lesión · T=Tarde · S=Suspendido · NM=No Marcado';
+
+      renderFilasJugadores('eq-tabla-cuerpo', jugadores, esPartido);
 
       const labels     = sesiones.map(s => s.fecha.substring(5));
       const dataPoints = sesiones.map(s => {
         const regs = Object.values(s.registros || {});
         const tot  = regs.length;
         if (!tot) return 0;
-        return Math.round(regs.filter(r => r.estado==='asiste'||r.estado==='tarde').length / tot * 100);
+        return esPartido
+          ? Math.round(regs.filter(r => r.estado === 'asiste').length / tot * 100)
+          : Math.round(regs.filter(r => r.estado === 'asiste' || r.estado === 'tarde').length / tot * 100);
       });
 
       if (eqChart) eqChart.destroy();
@@ -560,9 +643,10 @@
 
   function exportarCSVEquipo() {
     if (!eqReportData.length) return;
-    const equipoId = document.getElementById('eq-sel-equipo').value;
-    const desde    = document.getElementById('eq-desde').value;
-    const hasta    = document.getElementById('eq-hasta').value;
+    const equipoId  = document.getElementById('eq-sel-equipo').value;
+    const desde     = document.getElementById('eq-desde').value;
+    const hasta     = document.getElementById('eq-hasta').value;
+    const esPartido = document.getElementById('eq-tipo').value === 'partido';
     const map = {}; const fechas = [];
     eqReportData.forEach(s => {
       if (!fechas.includes(s.fecha)) fechas.push(s.fecha);
@@ -578,7 +662,7 @@
       const row = [j.nombre];
       fechas.forEach(f => {
         const e = j.ses[f]||'NM'; row.push(e);
-        if (e!=='NM') { tot++; if(e==='asiste'||e==='tarde') a++; }
+        if (e!=='NM') { tot++; if(esPartido ? e==='asiste' : (e==='asiste'||e==='tarde')) a++; }
       });
       row.push(tot?`${Math.round(a/tot*100)}%`:'—');
       rows.push(row);
@@ -594,6 +678,8 @@
     const jugadorId = document.getElementById('jug-sel-jugador').value;
     const desde     = document.getElementById('jug-desde').value;
     const hasta     = document.getElementById('jug-hasta').value;
+    const tipoSel   = document.getElementById('jug-tipo').value;
+    const esPartido = tipoSel === 'partido';
     if (!equipoId||!jugadorId||!desde||!hasta) { showToast('Completa todos los campos.','error'); return; }
 
     document.getElementById('jug-results').classList.add('hidden');
@@ -610,30 +696,30 @@
       document.getElementById('jug-loading').classList.add('hidden');
       if (snap.empty) { document.getElementById('jug-vacio').classList.remove('hidden'); return; }
 
-      const sesiones = snap.docs.map(d => d.data()).sort((a,b) => a.fecha.localeCompare(b.fecha));
+      const todasSesiones = snap.docs.map(d => d.data()).sort((a,b) => a.fecha.localeCompare(b.fecha));
+      const sesiones      = todasSesiones.filter(s => (s.tipo || 'entrenamiento') === tipoSel);
+      if (!sesiones.length) { document.getElementById('jug-vacio').classList.remove('hidden'); return; }
+
       const jugNombre = document.getElementById('jug-sel-jugador').options[document.getElementById('jug-sel-jugador').selectedIndex].text;
       const eqNombre  = document.getElementById('jug-sel-equipo').options[document.getElementById('jug-sel-equipo').selectedIndex].text;
 
-      let a=0,f=0,p=0,l=0,t=0,s=0,nm=0, total=0;
+      // Contadores
+      let stats = { asiste:0, falta:0, permiso:0, lesion:0, tarde:0, suspendido:0,
+                    no_convocado:0, no_disponible:0, falta_convocado:0, nm:0 };
+      let total = 0;
       const timeline = [];
 
       sesiones.forEach(ses => {
         const rec = (ses.registros||{})[jugadorId];
         total++;
-        const est = rec?.estado||null;
-        if      (est==='asiste')     a++;
-        else if (est==='falta')      f++;
-        else if (est==='permiso')    p++;
-        else if (est==='lesion')     l++;
-        else if (est==='tarde')      t++;
-        else if (est==='suspendido') s++;
-        else nm++;
+        const est = rec?.estado || null;
+        if (est && Object.prototype.hasOwnProperty.call(stats, est)) stats[est]++;
+        else stats.nm++;
         timeline.push({ fecha:ses.fecha, estado:est });
       });
 
-      const porcentaje = pct(a+t, total);
-
-      jugReportCtx = { sesiones, jugadorId, jugNombre, equipoId, desde, hasta };
+      const porcentaje = esPartido ? pct(stats.asiste, total) : pct(stats.asiste + stats.tarde, total);
+      jugReportCtx = { sesiones, jugadorId, jugNombre, equipoId, desde, hasta, esPartido };
 
       document.getElementById('jug-equipo-label').textContent = eqNombre;
       document.getElementById('jug-nombre').textContent       = jugNombre;
@@ -641,21 +727,73 @@
       document.getElementById('jug-kpi-pct').textContent      = `${porcentaje}%`;
       document.getElementById('jug-kpi-pct').style.color      = colorPct(porcentaje);
       document.getElementById('jug-kpi-sesiones').textContent = total;
-      document.getElementById('jug-k-a').textContent  = a;
-      document.getElementById('jug-k-f').textContent  = f;
-      document.getElementById('jug-k-p').textContent  = p;
-      document.getElementById('jug-k-l').textContent  = l;
-      document.getElementById('jug-k-t').textContent  = t;
-      document.getElementById('jug-k-nm').textContent = nm;
 
+      // Actualizar tiles de contadores según tipo
+      const counters = document.getElementById('jug-counters');
+      if (esPartido) {
+        counters.className = 'grid grid-cols-5 gap-2 mb-5';
+        counters.innerHTML = `
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-green-400 text-xs font-bold uppercase">A</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.asiste}</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-xs font-bold uppercase" style="color:#94a3b8">NC</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.no_convocado}</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-xs font-bold uppercase" style="color:#a78bfa">ND</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.no_disponible}</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-xs font-bold uppercase" style="color:#fca5a5">FC</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.falta_convocado}</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-lfc-slate text-xs font-bold uppercase">NM</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.nm}</p>
+          </div>`;
+      } else {
+        counters.className = 'grid grid-cols-6 gap-2 mb-5';
+        counters.innerHTML = `
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-green-400 text-xs font-bold uppercase">A</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.asiste}</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-red-400 text-xs font-bold uppercase">F</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.falta}</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-blue-400 text-xs font-bold uppercase">P</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.permiso}</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-orange-400 text-xs font-bold uppercase">L</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.lesion}</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-yellow-400 text-xs font-bold uppercase">T</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.tarde}</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-2 text-center">
+            <p class="text-lfc-slate text-xs font-bold uppercase">NM</p>
+            <p class="text-white font-barlow font-bold text-xl mt-0.5">${stats.nm}</p>
+          </div>`;
+      }
+
+      // Timeline
       const tl = document.getElementById('jug-timeline');
       tl.innerHTML = '';
       timeline.forEach(item => {
-        const ui = item.estado ? (ESTADO_UI[item.estado]||ESTADO_UI.asiste) : { label:'NM', cls:'text-lfc-slate/50', bg:'bg-white/5' };
+        const ui = item.estado
+          ? (ESTADO_UI[item.estado] || { label: item.estado, cls:'text-lfc-slate', bg:'bg-white/5' })
+          : { label:'NM', cls:'text-lfc-slate/50', bg:'bg-white/5' };
+        const styleAttr = ui.style ? ` style="${ui.style}"` : '';
         tl.innerHTML += `
           <div class="flex items-center justify-between py-2.5 border-b border-white/5">
             <span class="text-white text-xs font-medium">${formatFecha(item.fecha)}</span>
-            <span class="text-xs font-bold px-3 py-1 rounded-lg ${ui.bg} ${ui.cls}">${ui.label}</span>
+            <span class="text-xs font-bold px-3 py-1 rounded-lg ${ui.bg} ${ui.cls}"${styleAttr}>${ui.label}</span>
           </div>`;
       });
 
@@ -669,7 +807,7 @@
 
   function exportarCSVJugador() {
     if (!jugReportCtx.sesiones) return;
-    const { sesiones, jugadorId, jugNombre, desde, hasta } = jugReportCtx;
+    const { sesiones, jugadorId, desde, hasta } = jugReportCtx;
     const rows = [['Fecha','Estado']];
     sesiones.forEach(ses => {
       const rec = (ses.registros||{})[jugadorId];
@@ -682,8 +820,10 @@
   //  REPORTE 3 — MASTER
   // ═══════════════════════════════════════════════════════════
   async function generarReporteMaster() {
-    const desde = document.getElementById('mas-desde').value;
-    const hasta = document.getElementById('mas-hasta').value;
+    const desde     = document.getElementById('mas-desde').value;
+    const hasta     = document.getElementById('mas-hasta').value;
+    const tipoSel   = document.getElementById('mas-tipo').value;
+    const esPartido = tipoSel === 'partido';
     if (!desde||!hasta) { showToast('Selecciona rango de fechas.','error'); return; }
 
     document.getElementById('mas-results').classList.add('hidden');
@@ -699,10 +839,12 @@
           .where('fecha','<=',hasta)
           .get();
         if (snap.empty) continue;
-        const sesiones  = snap.docs.map(d => d.data()).sort((a,b) => a.fecha.localeCompare(b.fecha));
-        const jugadores = agregarPorJugador(sesiones);
+        const todasSesiones = snap.docs.map(d => d.data()).sort((a,b) => a.fecha.localeCompare(b.fecha));
+        const sesiones      = todasSesiones.filter(s => (s.tipo || 'entrenamiento') === tipoSel);
+        if (!sesiones.length) continue;
+        const jugadores = agregarPorJugador(sesiones, esPartido);
         const prom      = jugadores.length
-          ? Math.round(jugadores.reduce((s,j) => s+pct(j.asiste+j.tarde,j.total),0) / jugadores.length)
+          ? Math.round(jugadores.reduce((s,j) => s + (esPartido ? pct(j.asiste,j.total) : pct(j.asiste+j.tarde,j.total)), 0) / jugadores.length)
           : 0;
         resultados.push({ eq, sesiones, jugadores, prom });
       }
@@ -712,7 +854,6 @@
 
       resultados.sort((a,b) => b.prom - a.prom);
 
-      // Periodo en encabezado de impresión
       document.getElementById('mas-print-periodo').textContent = `${formatFecha(desde)} — ${formatFecha(hasta)}`;
 
       // Tarjetas resumen
@@ -727,6 +868,10 @@
             <p class="text-lfc-slate text-xs">${r.jugadores.length} jugadores</p>
           </div>`;
       });
+
+      const leyendaFooter = esPartido
+        ? 'A=Asiste · NC=No Convocado · ND=No Disponible TS · FC=Falta/Convocado · NM=No Marcado'
+        : 'A=Asiste F=Falta P=Permiso L=Lesión T=Tarde S=Suspendido NM=No Marcado';
 
       // Tablas detalladas por equipo
       const tablas = document.getElementById('mas-tablas');
@@ -743,23 +888,15 @@
             <table class="w-full text-xs min-w-[380px]">
               <thead>
                 <tr class="text-lfc-slate uppercase tracking-wider border-b border-white/10">
-                  <th class="text-left py-2 pr-2 font-semibold">Jugador</th>
-                  <th class="text-center py-2 px-1 font-semibold">%</th>
-                  <th class="text-center py-2 px-1 font-semibold text-green-400">A</th>
-                  <th class="text-center py-2 px-1 font-semibold text-red-400">F</th>
-                  <th class="text-center py-2 px-1 font-semibold text-blue-400">P</th>
-                  <th class="text-center py-2 px-1 font-semibold text-orange-400">L</th>
-                  <th class="text-center py-2 px-1 font-semibold text-yellow-400">T</th>
-                  <th class="text-center py-2 px-1 font-semibold text-lfc-slate">S</th>
-                  <th class="text-center py-2 pl-1 font-semibold text-lfc-slate/50">NM</th>
+                  ${theadHtml(esPartido)}
                 </tr>
               </thead>
               <tbody id="mas-tbody-${r.eq.id}"></tbody>
             </table>
           </div>
-          <p class="text-lfc-slate text-xs mt-2">${r.sesiones.length} sesiones · A=Asiste F=Falta P=Permiso L=Lesión T=Tarde S=Suspendido NM=No Marcado</p>`;
+          <p class="text-lfc-slate text-xs mt-2">${r.sesiones.length} sesiones · ${leyendaFooter}</p>`;
         tablas.appendChild(sec);
-        renderFilasJugadores(`mas-tbody-${r.eq.id}`, r.jugadores);
+        renderFilasJugadores(`mas-tbody-${r.eq.id}`, r.jugadores, esPartido);
       });
 
       document.getElementById('mas-results').classList.remove('hidden');

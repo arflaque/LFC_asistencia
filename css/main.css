@@ -20,6 +20,11 @@
 .status-btn.active-tarde       { background-color: #F5BB18; color: #20242A; border-color: #F5BB18; }
 .status-btn.active-suspendido  { background-color: #6A7B95; color: #fff; border-color: #6A7B95; }
 
+/* Partido-specific status states */
+.status-btn.active-nc  { background-color: #475569; color: #fff; border-color: #475569; }
+.status-btn.active-nd  { background-color: #7c3aed; color: #fff; border-color: #7c3aed; }
+.status-btn.active-fc  { background-color: #9f1239; color: #fff; border-color: #9f1239; }
+
 /* Player row highlight when fully marked */
 .player-row { transition: background-color 0.15s; }
 .player-row:active { background-color: rgba(25, 53, 96, 0.4); }

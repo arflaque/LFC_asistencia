@@ -31,14 +31,26 @@
 
   <main class="max-w-lg mx-auto px-4 py-6">
 
-    <!-- Selector de fecha -->
+    <!-- Selector de fecha y tipo -->
     <section class="mb-6">
       <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-2">
         Fecha de la sesión
       </label>
       <input id="inp-fecha" type="date"
         class="w-full bg-lfc-navy text-white rounded-xl px-4 py-3 text-sm border border-lfc-slate/20
-               focus:border-lfc-red focus:outline-none appearance-none transition cursor-pointer">
+               focus:border-lfc-red focus:outline-none appearance-none transition cursor-pointer mb-3">
+
+      <p class="text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-2">Tipo de sesión</p>
+      <div class="flex gap-2">
+        <button id="btn-tipo-ent" onclick="setTipo('entrenamiento')"
+          class="flex-1 py-3 rounded-xl font-barlow font-bold text-lg uppercase tracking-wide transition">
+          Entrenamiento
+        </button>
+        <button id="btn-tipo-par" onclick="setTipo('partido')"
+          class="flex-1 py-3 rounded-xl font-barlow font-bold text-lg uppercase tracking-wide transition">
+          Partido
+        </button>
+      </div>
     </section>
 
     <!-- Equipos -->
@@ -94,9 +106,19 @@
   <script src="js/utils.js"></script>
 
   <script>
-    // Fecha por defecto: hoy
+    // Fecha y tipo de sesión
     const inpFecha = document.getElementById('inp-fecha');
     inpFecha.value = todayStr();
+
+    let tipoSesion = 'entrenamiento';
+    function setTipo(t) {
+      tipoSesion = t;
+      const ent = document.getElementById('btn-tipo-ent');
+      const par = document.getElementById('btn-tipo-par');
+      ent.className = `flex-1 py-3 rounded-xl font-barlow font-bold text-lg uppercase tracking-wide transition ${t === 'entrenamiento' ? 'bg-lfc-blue text-white' : 'bg-lfc-navy text-lfc-slate'}`;
+      par.className = `flex-1 py-3 rounded-xl font-barlow font-bold text-lg uppercase tracking-wide transition ${t === 'partido' ? 'bg-lfc-red text-white' : 'bg-lfc-navy text-lfc-slate'}`;
+    }
+    setTipo('entrenamiento'); // estado inicial
 
     requireAuth(async (user) => {
       // Header
@@ -135,7 +157,7 @@
           <div class="text-white font-barlow font-bold text-2xl uppercase tracking-wide">${eq.nombre}</div>`;
         btn.addEventListener('click', () => {
           const fecha = inpFecha.value || todayStr();
-          location.href = `asistencia.html?equipo=${eq.id}&fecha=${fecha}`;
+          location.href = `asistencia.html?equipo=${eq.id}&fecha=${fecha}&tipo=${tipoSesion}`;
         });
         list.appendChild(btn);
       });

@@ -79,3 +79,10 @@ const ESTADOS = [
   { id: 'tarde',       label: 'T', nombre: 'Tarde',       css: 'active-tarde' },
   { id: 'suspendido',  label: 'S', nombre: 'Suspendido',  css: 'active-suspendido' },
 ];
+
+const ESTADOS_PARTIDO = [
+  { id: 'asiste',          label: 'A',  nombre: 'Asiste',           css: 'active-asiste' },
+  { id: 'no_convocado',    label: 'NC', nombre: 'No Convocado',     css: 'active-nc' },
+  { id: 'no_disponible',   label: 'ND', nombre: 'No Disponible TS', css: 'active-nd' },
+  { id: 'falta_convocado', label: 'FC', nombre: 'Falta/Convocado',  css: 'active-fc' },
+];
