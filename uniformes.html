@@ -59,13 +59,38 @@
 
   let currentUser = null;
 
-  requireAuth(async (user) => {
-    currentUser = user;
-    renderHeader(document.getElementById('header-root'), user, 'Uniformes');
+  auth.onAuthStateChanged(async (authUser) => {
+    if (!authUser) {
+      await auth.signInAnonymously();
+      return; // onAuthStateChanged volverá a disparar con el usuario anónimo
+    }
+
+    let userData;
+    if (authUser.isAnonymous) {
+      userData = { uid: authUser.uid, rol: 'anonimo', nombre: 'Invitado' };
+      renderHeaderAnonimo();
+    } else {
+      try {
+        const snap = await db.collection('usuarios').doc(authUser.uid).get();
+        if (!snap.exists || snap.data().activo === false) {
+          await auth.signOut();
+          window.location.href = 'index.html';
+          return;
+        }
+        userData = { uid: authUser.uid, email: authUser.email, ...snap.data() };
+        renderHeader(document.getElementById('header-root'), userData, 'Uniformes');
+      } catch (e) {
+        console.error(e);
+        window.location.href = 'index.html';
+        return;
+      }
+    }
+
+    currentUser = userData;
 
     let equipos = await getEquipos();
-    if (user.rol !== 'admin' && user.equiposAsignados?.length) {
-      equipos = equipos.filter(e => user.equiposAsignados.includes(e.id));
+    if (userData.rol !== 'admin' && userData.rol !== 'anonimo' && userData.equiposAsignados?.length) {
+      equipos = equipos.filter(e => userData.equiposAsignados.includes(e.id));
     }
 
     document.getElementById('loading').classList.add('hidden');
@@ -86,6 +111,22 @@
       container.appendChild(renderSeccionEquipo(eq, jugadores, pedido));
     }
   });
+
+  function renderHeaderAnonimo() {
+    document.getElementById('header-root').innerHTML = `
+      <header class="bg-lfc-navy border-b border-white/10 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded bg-lfc-red flex items-center justify-center shrink-0">
+            <span class="text-white font-barlow font-bold text-sm leading-none">LFC</span>
+          </div>
+          <span class="text-white font-barlow font-bold text-lg tracking-wide leading-none">Uniformes</span>
+        </div>
+        <a href="index.html"
+          class="text-lfc-slate hover:text-white text-xs font-semibold uppercase tracking-wider transition">
+          Iniciar sesión
+        </a>
+      </header>`;
+  }
 
   // ── Render sección por equipo ──────────────────────────────────
   function renderSeccionEquipo(eq, jugadores, pedido) {
