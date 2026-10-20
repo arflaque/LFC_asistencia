@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Lincoln FC — Pedido de Uniformes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          'lfc-red':'#BD202F','lfc-navy':'#193560',
+          'lfc-slate':'#6A7B95','lfc-charcoal':'#20242A',
+          'lfc-yellow':'#F5BB18','lfc-blue':'#004A8F'
+        },
+        fontFamily: {
+          'barlow': ['"Barlow Condensed"','sans-serif'],
+          'montserrat': ['Montserrat','sans-serif']
+        }
+      }}
+    }
+  </script>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="bg-lfc-charcoal min-h-screen font-montserrat">
+
+  <div id="header-root"></div>
+
+  <main class="max-w-lg mx-auto px-4 py-6">
+
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-white font-barlow font-bold text-3xl uppercase tracking-wide leading-none">Uniformes</h1>
+        <p class="text-lfc-slate text-xs mt-1">Pedido de tallas y dorsales por equipo</p>
+      </div>
+    </div>
+
+    <div id="loading" class="flex justify-center py-12"><div class="spinner"></div></div>
+
+    <div id="equipos-container"></div>
+
+    <div id="vacio" class="hidden text-center py-12 text-lfc-slate text-sm">
+      No tienes equipos asignados.
+    </div>
+
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/utils.js"></script>
+
+  <script>
+  const TALLAS = ['4','6','8','10','12','14','16','XS','S','M','L','XL','XXL','3XL'];
+
+  let currentUser = null;
+
+  requireAuth(async (user) => {
+    currentUser = user;
+    renderHeader(document.getElementById('header-root'), user, 'Uniformes');
+
+    let equipos = await getEquipos();
+    if (user.rol !== 'admin' && user.equiposAsignados?.length) {
+      equipos = equipos.filter(e => user.equiposAsignados.includes(e.id));
+    }
+
+    document.getElementById('loading').classList.add('hidden');
+
+    if (!equipos.length) {
+      document.getElementById('vacio').classList.remove('hidden');
+      return;
+    }
+
+    const container = document.getElementById('equipos-container');
+
+    for (const eq of equipos) {
+      const [jugadores, unifSnap] = await Promise.all([
+        getJugadores(eq.id),
+        db.collection('uniformes').doc(eq.id).get()
+      ]);
+      const pedido = unifSnap.exists ? (unifSnap.data().pedido || {}) : {};
+      container.appendChild(renderSeccionEquipo(eq, jugadores, pedido));
+    }
+  });
+
+  // ── Render sección por equipo ──────────────────────────────────
+  function renderSeccionEquipo(eq, jugadores, pedido) {
+    const completados = contarCompletados(jugadores, pedido);
+
+    const sec = document.createElement('section');
+    sec.className = 'bg-lfc-navy rounded-2xl p-4 mb-5';
+    sec.innerHTML = `
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-white font-barlow font-bold text-xl uppercase tracking-wide leading-none">${eq.nombre}</h2>
+          <p id="contador-${eq.id}" class="text-lfc-slate text-xs mt-0.5">${completados}/${jugadores.length} completados</p>
+        </div>
+        <button onclick="guardarEquipo('${eq.id}')"
+          class="text-lfc-yellow text-xs font-semibold uppercase tracking-wide hover:text-white transition">
+          Guardar Todo
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs min-w-[310px]">
+          <thead>
+            <tr class="text-lfc-slate uppercase tracking-wider border-b border-white/10">
+              <th class="text-left py-2 pr-2 font-semibold">Jugador</th>
+              <th class="text-center py-2 px-1 font-semibold w-20">Talla</th>
+              <th class="text-center py-2 px-1 font-semibold w-14">#</th>
+              <th class="py-2 pl-1 w-16"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-${eq.id}"></tbody>
+        </table>
+      </div>`;
+
+    const tbody = sec.querySelector(`#tbody-${eq.id}`);
+    jugadores.forEach(j => tbody.appendChild(renderFila(eq, j, pedido[j.id] || {})));
+
+    return sec;
+  }
+
+  // ── Render fila de jugador ─────────────────────────────────────
+  function renderFila(eq, jugador, p) {
+    const talla  = p.talla  || '';
+    const dorsal = p.dorsal != null ? p.dorsal : '';
+
+    const tallasOpts = TALLAS.map(t =>
+      `<option value="${t}" ${talla === t ? 'selected' : ''}>${t}</option>`
+    ).join('');
+
+    const tr = document.createElement('tr');
+    tr.className    = 'border-b border-white/5';
+    tr.dataset.equipoId      = eq.id;
+    tr.dataset.equipoNombre  = eq.nombre;
+    tr.dataset.jugadorId     = jugador.id;
+    tr.dataset.jugadorNombre = jugador.nombre;
+    tr.dataset.origTalla     = talla;
+    tr.dataset.origDorsal    = String(dorsal);
+    tr.dataset.dirty         = 'false';
+
+    tr.innerHTML = `
+      <td class="py-2 pr-2 text-white font-medium leading-tight">${jugador.nombre}</td>
+      <td class="py-2 px-1">
+        <select class="talla-sel bg-lfc-charcoal text-white rounded-lg px-1.5 py-1.5 text-xs
+                       border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-full">
+          <option value="">—</option>
+          ${tallasOpts}
+        </select>
+      </td>
+      <td class="py-2 px-1">
+        <input type="number" min="1" max="99" value="${dorsal}" placeholder="—"
+          class="dorsal-inp bg-lfc-charcoal text-white rounded-lg px-1 py-1.5 text-xs text-center
+                 border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-14">
+      </td>
+      <td class="py-2 pl-1 text-right">
+        <button class="btn-guardar hidden bg-lfc-yellow hover:bg-yellow-400 text-lfc-charcoal
+                       text-xs font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
+          Guardar
+        </button>
+        <span class="btn-ok hidden text-green-400 text-sm font-bold">✓</span>
+      </td>`;
+
+    const tallaSel   = tr.querySelector('.talla-sel');
+    const dorsalInp  = tr.querySelector('.dorsal-inp');
+    const btnGuardar = tr.querySelector('.btn-guardar');
+    const btnOk      = tr.querySelector('.btn-ok');
+
+    function checkDirty() {
+      const dirty = tallaSel.value !== tr.dataset.origTalla ||
+                    String(dorsalInp.value) !== tr.dataset.origDorsal;
+      tr.dataset.dirty = dirty ? 'true' : 'false';
+      btnGuardar.classList.toggle('hidden', !dirty);
+      if (!dirty) btnOk.classList.add('hidden');
+    }
+
+    tallaSel.addEventListener('change', checkDirty);
+    dorsalInp.addEventListener('input',  checkDirty);
+
+    btnGuardar.addEventListener('click', async () => {
+      btnGuardar.textContent = '…';
+      btnGuardar.disabled = true;
+      const ok = await guardarJugador(tr);
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = 'Guardar';
+      if (ok) {
+        btnGuardar.classList.add('hidden');
+        btnOk.classList.remove('hidden');
+        tr.dataset.dirty      = 'false';
+        tr.dataset.origTalla  = tallaSel.value;
+        tr.dataset.origDorsal = String(dorsalInp.value);
+        setTimeout(() => btnOk.classList.add('hidden'), 2000);
+        actualizarContador(eq.id);
+      }
+    });
+
+    return tr;
+  }
+
+  // ── Guardar un jugador ─────────────────────────────────────────
+  async function guardarJugador(tr) {
+    const { equipoId, equipoNombre, jugadorId, jugadorNombre } = tr.dataset;
+    const talla  = tr.querySelector('.talla-sel').value;
+    const dorsal = tr.querySelector('.dorsal-inp').value;
+
+    const docRef = db.collection('uniformes').doc(equipoId);
+    const updateData = {};
+    updateData[`pedido.${jugadorId}`] = {
+      nombre: jugadorNombre,
+      talla:  talla,
+      dorsal: dorsal !== '' ? Number(dorsal) : null
+    };
+    updateData['actualizadoPor'] = currentUser.uid;
+    updateData['ultimaEdicion']  = firebase.firestore.FieldValue.serverTimestamp();
+
+    try {
+      try {
+        await docRef.update(updateData);
+      } catch (e) {
+        // El doc no existe todavía — crearlo primero
+        await docRef.set({ equipo: equipoId, equipoNombre, pedido: {} });
+        await docRef.update(updateData);
+      }
+      return true;
+    } catch (e) {
+      showToast('Error al guardar. Verifica tu conexión.', 'error');
+      console.error(e);
+      return false;
+    }
+  }
+
+  // ── Guardar todos los pendientes de un equipo ──────────────────
+  async function guardarEquipo(equipoId) {
+    const filasDirty = [...document.querySelectorAll(
+      `[data-equipo-id="${equipoId}"][data-dirty="true"]`
+    )];
+    if (!filasDirty.length) {
+      showToast('No hay cambios pendientes.', 'info');
+      return;
+    }
+
+    let guardados = 0;
+    for (const tr of filasDirty) {
+      const ok = await guardarJugador(tr);
+      if (ok) {
+        const tallaSel   = tr.querySelector('.talla-sel');
+        const dorsalInp  = tr.querySelector('.dorsal-inp');
+        const btnGuardar = tr.querySelector('.btn-guardar');
+        const btnOk      = tr.querySelector('.btn-ok');
+
+        tr.dataset.dirty      = 'false';
+        tr.dataset.origTalla  = tallaSel.value;
+        tr.dataset.origDorsal = String(dorsalInp.value);
+        btnGuardar.classList.add('hidden');
+        btnOk.classList.remove('hidden');
+        setTimeout(() => btnOk.classList.add('hidden'), 2000);
+        guardados++;
+      }
+    }
+    actualizarContador(equipoId);
+    showToast(
+      `${guardados} jugador${guardados !== 1 ? 'es' : ''} guardado${guardados !== 1 ? 's' : ''}.`,
+      'success'
+    );
+  }
+
+  // ── Actualizar contador de completados ─────────────────────────
+  function actualizarContador(equipoId) {
+    const filas = [...document.querySelectorAll(`[data-equipo-id="${equipoId}"]`)];
+    const total       = filas.length;
+    const completados = filas.filter(tr => {
+      const talla  = tr.querySelector('.talla-sel').value;
+      const dorsal = tr.querySelector('.dorsal-inp').value;
+      return talla && dorsal;
+    }).length;
+    const label = document.getElementById(`contador-${equipoId}`);
+    if (label) label.textContent = `${completados}/${total} completados`;
+  }
+
+  function contarCompletados(jugadores, pedido) {
+    return jugadores.filter(j => {
+      const p = pedido[j.id];
+      return p && p.talla && (p.dorsal !== null && p.dorsal !== undefined && p.dorsal !== '');
+    }).length;
+  }
+  </script>
+</body>
+</html>
