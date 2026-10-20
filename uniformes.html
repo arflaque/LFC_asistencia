@@ -105,12 +105,13 @@
         </button>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-xs min-w-[520px]">
+        <table class="w-full text-xs min-w-[600px]">
           <thead>
             <tr class="text-lfc-slate uppercase tracking-wider border-b border-white/10">
               <th class="text-left py-2 pr-2 font-semibold">Jugador</th>
               <th class="text-center py-2 px-1 font-semibold w-16">Cat.<br>Actual</th>
               <th class="text-center py-2 px-1 font-semibold w-16">Cat.<br>2027</th>
+              <th class="text-center py-2 px-1 font-semibold w-14">Año<br>Nac.</th>
               <th class="text-center py-2 px-1 font-semibold w-20">Talla</th>
               <th class="text-center py-2 px-1 font-semibold w-12">#</th>
               <th class="py-2 pl-1 w-16"></th>
@@ -132,6 +133,7 @@
     const dorsal   = p.dorsal  != null ? p.dorsal : '';
     const catActual = eq.nombre;
     const cat2027   = p.cat2027 || '';
+    const anioNac   = p.anioNac != null ? p.anioNac : '';
 
     const tallasOpts = TALLAS.map(t =>
       `<option value="${t}" ${talla === t ? 'selected' : ''}>${t}</option>`
@@ -147,6 +149,7 @@
     tr.dataset.origTalla     = talla;
     tr.dataset.origDorsal    = String(dorsal);
     tr.dataset.origCat2027   = cat2027;
+    tr.dataset.origAnio      = String(anioNac);
     tr.dataset.dirty         = 'false';
 
     tr.innerHTML = `
@@ -158,6 +161,11 @@
         <input type="text" value="${cat2027}" placeholder="—" maxlength="12"
           class="cat2027-inp bg-lfc-charcoal text-white rounded-lg px-1 py-1.5 text-xs text-center
                  border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-16">
+      </td>
+      <td class="py-2 px-1">
+        <input type="number" min="2000" max="2025" value="${anioNac}" placeholder="—"
+          class="anio-inp bg-lfc-charcoal text-white rounded-lg px-1 py-1.5 text-xs text-center
+                 border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-14">
       </td>
       <td class="py-2 px-1">
         <select class="talla-sel bg-lfc-charcoal text-white rounded-lg px-1.5 py-1.5 text-xs
@@ -182,13 +190,15 @@
     const tallaSel   = tr.querySelector('.talla-sel');
     const dorsalInp  = tr.querySelector('.dorsal-inp');
     const cat2027Inp = tr.querySelector('.cat2027-inp');
+    const anioInp    = tr.querySelector('.anio-inp');
     const btnGuardar = tr.querySelector('.btn-guardar');
     const btnOk      = tr.querySelector('.btn-ok');
 
     function checkDirty() {
       const dirty = tallaSel.value          !== tr.dataset.origTalla   ||
                     String(dorsalInp.value) !== tr.dataset.origDorsal  ||
-                    cat2027Inp.value        !== tr.dataset.origCat2027;
+                    cat2027Inp.value        !== tr.dataset.origCat2027 ||
+                    String(anioInp.value)   !== tr.dataset.origAnio;
       tr.dataset.dirty = dirty ? 'true' : 'false';
       btnGuardar.classList.toggle('hidden', !dirty);
       if (!dirty) btnOk.classList.add('hidden');
@@ -197,6 +207,7 @@
     tallaSel.addEventListener('change', checkDirty);
     dorsalInp.addEventListener('input',  checkDirty);
     cat2027Inp.addEventListener('input',  checkDirty);
+    anioInp.addEventListener('input',    checkDirty);
 
     btnGuardar.addEventListener('click', async () => {
       btnGuardar.textContent = '…';
@@ -211,6 +222,7 @@
         tr.dataset.origTalla    = tallaSel.value;
         tr.dataset.origDorsal   = String(dorsalInp.value);
         tr.dataset.origCat2027  = cat2027Inp.value;
+        tr.dataset.origAnio     = String(anioInp.value);
         setTimeout(() => btnOk.classList.add('hidden'), 2000);
         actualizarContador(eq.id);
       }
@@ -225,6 +237,7 @@
     const talla    = tr.querySelector('.talla-sel').value;
     const dorsal   = tr.querySelector('.dorsal-inp').value;
     const cat2027  = tr.querySelector('.cat2027-inp').value;
+    const anioNac  = tr.querySelector('.anio-inp').value;
 
     const docRef = db.collection('uniformes').doc(equipoId);
     const updateData = {};
@@ -232,6 +245,7 @@
       nombre:    jugadorNombre,
       catActual: catActual,
       cat2027:   cat2027,
+      anioNac:   anioNac !== '' ? Number(anioNac) : null,
       talla:     talla,
       dorsal:    dorsal !== '' ? Number(dorsal) : null
     };
@@ -277,6 +291,7 @@
         tr.dataset.origTalla   = tallaSel.value;
         tr.dataset.origDorsal  = String(dorsalInp.value);
         tr.dataset.origCat2027 = tr.querySelector('.cat2027-inp').value;
+        tr.dataset.origAnio    = String(tr.querySelector('.anio-inp').value);
         btnGuardar.classList.add('hidden');
         btnOk.classList.remove('hidden');
         setTimeout(() => btnOk.classList.add('hidden'), 2000);
