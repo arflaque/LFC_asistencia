@@ -60,6 +60,17 @@
   <script>
   const TALLAS = ['4','6','8','10','12','14','XS','S','M','L','XL','XXL','3XL'];
 
+  function cat2027FromAnio(anio) {
+    if (!anio) return '—';
+    const edad = 2027 - Number(anio);
+    if (edad <=  9) return 'Sub 9';
+    if (edad <= 11) return 'Sub 11';
+    if (edad <= 13) return 'Sub 13';
+    if (edad <= 15) return 'Sub 15';
+    if (edad <= 17) return 'Sub 17';
+    return 'Sub 21';
+  }
+
   let currentUser   = null;
   let equiposGlobal = [];
 
@@ -181,8 +192,8 @@
     const talla    = p.talla    || '';
     const dorsal   = p.dorsal  != null ? p.dorsal : '';
     const catActual = eq.nombre;
-    const cat2027   = p.cat2027 || '';
     const anioNac   = p.anioNac != null ? p.anioNac : '';
+    const cat2027   = cat2027FromAnio(anioNac);
 
     const tallasOpts = TALLAS.map(t =>
       `<option value="${t}" ${talla === t ? 'selected' : ''}>${t}</option>`
@@ -197,7 +208,6 @@
     tr.dataset.catActual     = catActual;
     tr.dataset.origTalla     = talla;
     tr.dataset.origDorsal    = String(dorsal);
-    tr.dataset.origCat2027   = cat2027;
     tr.dataset.origAnio      = String(anioNac);
     tr.dataset.dirty         = 'false';
 
@@ -206,10 +216,8 @@
       <td class="py-2 px-1 text-center">
         <span class="text-lfc-slate text-xs">${catActual}</span>
       </td>
-      <td class="py-2 px-1">
-        <input type="text" value="${cat2027}" placeholder="—" maxlength="12"
-          class="cat2027-inp bg-lfc-charcoal text-white rounded-lg px-1 py-1.5 text-xs text-center
-                 border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-16">
+      <td class="py-2 px-1 text-center">
+        <span class="cat2027-val text-white text-xs font-medium">${cat2027}</span>
       </td>
       <td class="py-2 px-1">
         <input type="number" min="2000" max="2025" value="${anioNac}" placeholder="—"
@@ -238,15 +246,14 @@
 
     const tallaSel   = tr.querySelector('.talla-sel');
     const dorsalInp  = tr.querySelector('.dorsal-inp');
-    const cat2027Inp = tr.querySelector('.cat2027-inp');
+    const cat2027Val = tr.querySelector('.cat2027-val');
     const anioInp    = tr.querySelector('.anio-inp');
     const btnGuardar = tr.querySelector('.btn-guardar');
     const btnOk      = tr.querySelector('.btn-ok');
 
     function checkDirty() {
-      const dirty = tallaSel.value          !== tr.dataset.origTalla   ||
-                    String(dorsalInp.value) !== tr.dataset.origDorsal  ||
-                    cat2027Inp.value        !== tr.dataset.origCat2027 ||
+      const dirty = tallaSel.value          !== tr.dataset.origTalla  ||
+                    String(dorsalInp.value) !== tr.dataset.origDorsal ||
                     String(anioInp.value)   !== tr.dataset.origAnio;
       tr.dataset.dirty = dirty ? 'true' : 'false';
       btnGuardar.classList.toggle('hidden', !dirty);
@@ -255,8 +262,10 @@
 
     tallaSel.addEventListener('change', checkDirty);
     dorsalInp.addEventListener('input',  checkDirty);
-    cat2027Inp.addEventListener('input',  checkDirty);
-    anioInp.addEventListener('input',    checkDirty);
+    anioInp.addEventListener('input', () => {
+      cat2027Val.textContent = cat2027FromAnio(anioInp.value);
+      checkDirty();
+    });
 
     btnGuardar.addEventListener('click', async () => {
       btnGuardar.textContent = '…';
@@ -270,7 +279,6 @@
         tr.dataset.dirty        = 'false';
         tr.dataset.origTalla    = tallaSel.value;
         tr.dataset.origDorsal   = String(dorsalInp.value);
-        tr.dataset.origCat2027  = cat2027Inp.value;
         tr.dataset.origAnio     = String(anioInp.value);
         setTimeout(() => btnOk.classList.add('hidden'), 2000);
         actualizarContador(eq.id);
@@ -285,15 +293,15 @@
     const { equipoId, equipoNombre, jugadorId, jugadorNombre, catActual } = tr.dataset;
     const talla    = tr.querySelector('.talla-sel').value;
     const dorsal   = tr.querySelector('.dorsal-inp').value;
-    const cat2027  = tr.querySelector('.cat2027-inp').value;
     const anioNac  = tr.querySelector('.anio-inp').value;
+    const cat2027  = cat2027FromAnio(anioNac);
 
     const docRef = db.collection('uniformes').doc(equipoId);
     const updateData = {};
     updateData[`pedido.${jugadorId}`] = {
       nombre:    jugadorNombre,
       catActual: catActual,
-      cat2027:   cat2027,
+      cat2027:   cat2027 !== '—' ? cat2027 : '',
       anioNac:   anioNac !== '' ? Number(anioNac) : null,
       talla:     talla,
       dorsal:    dorsal !== '' ? Number(dorsal) : null
@@ -339,7 +347,6 @@
         tr.dataset.dirty       = 'false';
         tr.dataset.origTalla   = tallaSel.value;
         tr.dataset.origDorsal  = String(dorsalInp.value);
-        tr.dataset.origCat2027 = tr.querySelector('.cat2027-inp').value;
         tr.dataset.origAnio    = String(tr.querySelector('.anio-inp').value);
         btnGuardar.classList.add('hidden');
         btnOk.classList.remove('hidden');
