@@ -154,10 +154,10 @@
         </button>
       </div>
       <div class="overflow-auto max-h-[70vh]">
-        <table class="w-full text-xs min-w-[600px]">
+        <table class="text-xs min-w-[600px]">
           <thead class="sticky top-0 z-10">
             <tr class="text-lfc-slate uppercase tracking-wider border-b border-white/10 bg-lfc-navy">
-              <th class="text-left py-2 pr-2 font-semibold bg-lfc-navy sticky left-0 z-20">Jugador</th>
+              <th class="text-left py-2 pr-2 font-semibold bg-lfc-navy sticky left-0 z-20 whitespace-nowrap">Jugador</th>
               <th class="text-center py-2 px-1 font-semibold w-16 bg-lfc-navy">Cat.<br>Actual</th>
               <th class="text-center py-2 px-1 font-semibold w-16 bg-lfc-navy">Cat.<br>2027</th>
               <th class="text-center py-2 px-1 font-semibold w-14 bg-lfc-navy">Año<br>Nac.</th>
@@ -202,7 +202,7 @@
     tr.dataset.dirty         = 'false';
 
     tr.innerHTML = `
-      <td class="py-2 pr-2 text-white font-medium leading-tight sticky left-0 bg-lfc-navy z-10">${jugador.nombre}</td>
+      <td class="py-2 pr-2 text-white font-medium leading-tight sticky left-0 bg-lfc-navy z-10 whitespace-nowrap">${jugador.nombre}</td>
       <td class="py-2 px-1 text-center">
         <span class="text-lfc-slate text-xs">${catActual}</span>
       </td>
