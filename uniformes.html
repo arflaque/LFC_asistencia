@@ -105,12 +105,14 @@
         </button>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-xs min-w-[310px]">
+        <table class="w-full text-xs min-w-[520px]">
           <thead>
             <tr class="text-lfc-slate uppercase tracking-wider border-b border-white/10">
               <th class="text-left py-2 pr-2 font-semibold">Jugador</th>
+              <th class="text-center py-2 px-1 font-semibold w-16">Cat.<br>Actual</th>
+              <th class="text-center py-2 px-1 font-semibold w-16">Cat.<br>2027</th>
               <th class="text-center py-2 px-1 font-semibold w-20">Talla</th>
-              <th class="text-center py-2 px-1 font-semibold w-14">#</th>
+              <th class="text-center py-2 px-1 font-semibold w-12">#</th>
               <th class="py-2 pl-1 w-16"></th>
             </tr>
           </thead>
@@ -126,8 +128,10 @@
 
   // ── Render fila de jugador ─────────────────────────────────────
   function renderFila(eq, jugador, p) {
-    const talla  = p.talla  || '';
-    const dorsal = p.dorsal != null ? p.dorsal : '';
+    const talla    = p.talla    || '';
+    const dorsal   = p.dorsal  != null ? p.dorsal : '';
+    const catActual = eq.nombre;
+    const cat2027   = p.cat2027 || '';
 
     const tallasOpts = TALLAS.map(t =>
       `<option value="${t}" ${talla === t ? 'selected' : ''}>${t}</option>`
@@ -139,12 +143,22 @@
     tr.dataset.equipoNombre  = eq.nombre;
     tr.dataset.jugadorId     = jugador.id;
     tr.dataset.jugadorNombre = jugador.nombre;
+    tr.dataset.catActual     = catActual;
     tr.dataset.origTalla     = talla;
     tr.dataset.origDorsal    = String(dorsal);
+    tr.dataset.origCat2027   = cat2027;
     tr.dataset.dirty         = 'false';
 
     tr.innerHTML = `
       <td class="py-2 pr-2 text-white font-medium leading-tight">${jugador.nombre}</td>
+      <td class="py-2 px-1 text-center">
+        <span class="text-lfc-slate text-xs">${catActual}</span>
+      </td>
+      <td class="py-2 px-1">
+        <input type="text" value="${cat2027}" placeholder="—" maxlength="12"
+          class="cat2027-inp bg-lfc-charcoal text-white rounded-lg px-1 py-1.5 text-xs text-center
+                 border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-16">
+      </td>
       <td class="py-2 px-1">
         <select class="talla-sel bg-lfc-charcoal text-white rounded-lg px-1.5 py-1.5 text-xs
                        border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-full">
@@ -155,7 +169,7 @@
       <td class="py-2 px-1">
         <input type="number" min="1" max="99" value="${dorsal}" placeholder="—"
           class="dorsal-inp bg-lfc-charcoal text-white rounded-lg px-1 py-1.5 text-xs text-center
-                 border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-14">
+                 border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-12">
       </td>
       <td class="py-2 pl-1 text-right">
         <button class="btn-guardar hidden bg-lfc-yellow hover:bg-yellow-400 text-lfc-charcoal
@@ -167,12 +181,14 @@
 
     const tallaSel   = tr.querySelector('.talla-sel');
     const dorsalInp  = tr.querySelector('.dorsal-inp');
+    const cat2027Inp = tr.querySelector('.cat2027-inp');
     const btnGuardar = tr.querySelector('.btn-guardar');
     const btnOk      = tr.querySelector('.btn-ok');
 
     function checkDirty() {
-      const dirty = tallaSel.value !== tr.dataset.origTalla ||
-                    String(dorsalInp.value) !== tr.dataset.origDorsal;
+      const dirty = tallaSel.value          !== tr.dataset.origTalla   ||
+                    String(dorsalInp.value) !== tr.dataset.origDorsal  ||
+                    cat2027Inp.value        !== tr.dataset.origCat2027;
       tr.dataset.dirty = dirty ? 'true' : 'false';
       btnGuardar.classList.toggle('hidden', !dirty);
       if (!dirty) btnOk.classList.add('hidden');
@@ -180,6 +196,7 @@
 
     tallaSel.addEventListener('change', checkDirty);
     dorsalInp.addEventListener('input',  checkDirty);
+    cat2027Inp.addEventListener('input',  checkDirty);
 
     btnGuardar.addEventListener('click', async () => {
       btnGuardar.textContent = '…';
@@ -190,9 +207,10 @@
       if (ok) {
         btnGuardar.classList.add('hidden');
         btnOk.classList.remove('hidden');
-        tr.dataset.dirty      = 'false';
-        tr.dataset.origTalla  = tallaSel.value;
-        tr.dataset.origDorsal = String(dorsalInp.value);
+        tr.dataset.dirty        = 'false';
+        tr.dataset.origTalla    = tallaSel.value;
+        tr.dataset.origDorsal   = String(dorsalInp.value);
+        tr.dataset.origCat2027  = cat2027Inp.value;
         setTimeout(() => btnOk.classList.add('hidden'), 2000);
         actualizarContador(eq.id);
       }
@@ -203,16 +221,19 @@
 
   // ── Guardar un jugador ─────────────────────────────────────────
   async function guardarJugador(tr) {
-    const { equipoId, equipoNombre, jugadorId, jugadorNombre } = tr.dataset;
-    const talla  = tr.querySelector('.talla-sel').value;
-    const dorsal = tr.querySelector('.dorsal-inp').value;
+    const { equipoId, equipoNombre, jugadorId, jugadorNombre, catActual } = tr.dataset;
+    const talla    = tr.querySelector('.talla-sel').value;
+    const dorsal   = tr.querySelector('.dorsal-inp').value;
+    const cat2027  = tr.querySelector('.cat2027-inp').value;
 
     const docRef = db.collection('uniformes').doc(equipoId);
     const updateData = {};
     updateData[`pedido.${jugadorId}`] = {
-      nombre: jugadorNombre,
-      talla:  talla,
-      dorsal: dorsal !== '' ? Number(dorsal) : null
+      nombre:    jugadorNombre,
+      catActual: catActual,
+      cat2027:   cat2027,
+      talla:     talla,
+      dorsal:    dorsal !== '' ? Number(dorsal) : null
     };
     updateData['actualizadoPor'] = currentUser.uid;
     updateData['ultimaEdicion']  = firebase.firestore.FieldValue.serverTimestamp();
@@ -252,9 +273,10 @@
         const btnGuardar = tr.querySelector('.btn-guardar');
         const btnOk      = tr.querySelector('.btn-ok');
 
-        tr.dataset.dirty      = 'false';
-        tr.dataset.origTalla  = tallaSel.value;
-        tr.dataset.origDorsal = String(dorsalInp.value);
+        tr.dataset.dirty       = 'false';
+        tr.dataset.origTalla   = tallaSel.value;
+        tr.dataset.origDorsal  = String(dorsalInp.value);
+        tr.dataset.origCat2027 = tr.querySelector('.cat2027-inp').value;
         btnGuardar.classList.add('hidden');
         btnOk.classList.remove('hidden');
         setTimeout(() => btnOk.classList.add('hidden'), 2000);
