@@ -40,6 +40,9 @@
 
     <div id="loading" class="flex justify-center py-12"><div class="spinner"></div></div>
 
+    <!-- Tabs por equipo -->
+    <div id="tabs-bar" class="hidden flex-wrap gap-2 mb-5"></div>
+
     <div id="equipos-container"></div>
 
     <div id="vacio" class="hidden text-center py-12 text-lfc-slate text-sm">
@@ -57,7 +60,8 @@
   <script>
   const TALLAS = ['4','6','8','10','12','14','16','XS','S','M','L','XL','XXL','3XL'];
 
-  let currentUser = null;
+  let currentUser   = null;
+  let equiposGlobal = [];
 
   auth.onAuthStateChanged(async (authUser) => {
     if (!authUser) {
@@ -100,6 +104,7 @@
       return;
     }
 
+    equiposGlobal = equipos;
     const container = document.getElementById('equipos-container');
 
     for (const eq of equipos) {
@@ -110,6 +115,8 @@
       const pedido = unifSnap.exists ? (unifSnap.data().pedido || {}) : {};
       container.appendChild(renderSeccionEquipo(eq, jugadores, pedido));
     }
+
+    setupTabs(equipos);
   });
 
   function renderHeaderAnonimo() {
@@ -133,7 +140,8 @@
     const completados = contarCompletados(jugadores, pedido);
 
     const sec = document.createElement('section');
-    sec.className = 'bg-lfc-navy rounded-2xl p-4 mb-5';
+    sec.id        = `sec-${eq.id}`;
+    sec.className = 'bg-lfc-navy rounded-2xl p-4 hidden';
     sec.innerHTML = `
       <div class="flex items-center justify-between mb-3">
         <div>
@@ -364,6 +372,45 @@
       const p = pedido[j.id];
       return p && p.talla && (p.dorsal !== null && p.dorsal !== undefined && p.dorsal !== '');
     }).length;
+  }
+
+  // ── Tabs ───────────────────────────────────────────────────────
+  function setupTabs(equipos) {
+    const bar = document.getElementById('tabs-bar');
+    bar.innerHTML = '';
+
+    equipos.forEach((eq, i) => {
+      const btn = document.createElement('button');
+      btn.id          = `tab-btn-${eq.id}`;
+      btn.textContent = eq.nombre;
+      btn.className   = tabClass(i === 0);
+      btn.onclick     = () => showTab(eq.id);
+      bar.appendChild(btn);
+    });
+
+    bar.classList.remove('hidden');
+    bar.classList.add('flex');
+
+    // Mostrar solo el primero
+    if (equipos.length) showTab(equipos[0].id);
+  }
+
+  function showTab(equipoId) {
+    equiposGlobal.forEach(eq => {
+      const sec = document.getElementById(`sec-${eq.id}`);
+      const btn = document.getElementById(`tab-btn-${eq.id}`);
+      const activo = eq.id === equipoId;
+      sec?.classList.toggle('hidden', !activo);
+      if (btn) btn.className = tabClass(activo);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function tabClass(activo) {
+    return `shrink-0 px-4 py-2 rounded-xl font-barlow font-bold text-sm uppercase tracking-wide transition
+      ${activo
+        ? 'bg-lfc-red text-white'
+        : 'bg-lfc-navy text-lfc-slate hover:text-white border border-lfc-slate/30'}`;
   }
   </script>
 </body>
