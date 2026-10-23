@@ -165,14 +165,15 @@
         </button>
       </div>
       <div class="overflow-auto max-h-[70vh]">
-        <table class="text-xs min-w-[600px]">
+        <table class="text-xs min-w-[700px]">
           <thead class="sticky top-0 z-10">
             <tr class="text-lfc-slate uppercase tracking-wider border-b border-white/10 bg-lfc-navy">
               <th class="text-left py-2 pr-2 font-semibold bg-lfc-navy sticky left-0 z-20 whitespace-nowrap">Jugador</th>
               <th class="text-center py-2 px-1 font-semibold w-16 bg-lfc-navy">Cat.<br>Actual</th>
               <th class="text-center py-2 px-1 font-semibold w-16 bg-lfc-navy">Cat.<br>2027</th>
               <th class="text-center py-2 px-1 font-semibold w-14 bg-lfc-navy">Año<br>Nac.</th>
-              <th class="text-center py-2 px-1 font-semibold w-20 bg-lfc-navy">Talla</th>
+              <th class="text-center py-2 px-1 font-semibold w-20 bg-lfc-navy">Camisa</th>
+              <th class="text-center py-2 px-1 font-semibold w-20 bg-lfc-navy">Short</th>
               <th class="text-center py-2 px-1 font-semibold w-12 bg-lfc-navy">#</th>
               <th class="py-2 pl-1 w-16 bg-lfc-navy"></th>
             </tr>
@@ -189,14 +190,18 @@
 
   // ── Render fila de jugador ─────────────────────────────────────
   function renderFila(eq, jugador, p) {
-    const talla    = p.talla    || '';
-    const dorsal   = p.dorsal  != null ? p.dorsal : '';
-    const catActual = eq.nombre;
-    const anioNac   = p.anioNac != null ? p.anioNac : '';
-    const cat2027   = cat2027FromAnio(anioNac);
+    const tallaCamisa = p.tallaCamisa || p.talla || ''; // compatibilidad con campo antiguo
+    const tallaShort  = p.tallaShort  || '';
+    const dorsal      = p.dorsal  != null ? p.dorsal : '';
+    const catActual   = eq.nombre;
+    const anioNac     = p.anioNac != null ? p.anioNac : '';
+    const cat2027     = cat2027FromAnio(anioNac);
 
-    const tallasOpts = TALLAS.map(t =>
-      `<option value="${t}" ${talla === t ? 'selected' : ''}>${t}</option>`
+    const camisaOpts = TALLAS.map(t =>
+      `<option value="${t}" ${tallaCamisa === t ? 'selected' : ''}>${t}</option>`
+    ).join('');
+    const shortOpts = TALLAS.map(t =>
+      `<option value="${t}" ${tallaShort === t ? 'selected' : ''}>${t}</option>`
     ).join('');
 
     const tr = document.createElement('tr');
@@ -206,7 +211,8 @@
     tr.dataset.jugadorId     = jugador.id;
     tr.dataset.jugadorNombre = jugador.nombre;
     tr.dataset.catActual     = catActual;
-    tr.dataset.origTalla     = talla;
+    tr.dataset.origCamisa    = tallaCamisa;
+    tr.dataset.origShort     = tallaShort;
     tr.dataset.origDorsal    = String(dorsal);
     tr.dataset.origAnio      = String(anioNac);
     tr.dataset.dirty         = 'false';
@@ -225,10 +231,17 @@
                  border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-14">
       </td>
       <td class="py-2 px-1">
-        <select class="talla-sel bg-lfc-charcoal text-white rounded-lg px-1.5 py-1.5 text-xs
+        <select class="camisa-sel bg-lfc-charcoal text-white rounded-lg px-1.5 py-1.5 text-xs
                        border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-full">
           <option value="">—</option>
-          ${tallasOpts}
+          ${camisaOpts}
+        </select>
+      </td>
+      <td class="py-2 px-1">
+        <select class="short-sel bg-lfc-charcoal text-white rounded-lg px-1.5 py-1.5 text-xs
+                       border border-lfc-slate/20 focus:border-lfc-red focus:outline-none w-full">
+          <option value="">—</option>
+          ${shortOpts}
         </select>
       </td>
       <td class="py-2 px-1">
@@ -244,7 +257,8 @@
         <span class="btn-ok hidden text-green-400 text-sm font-bold">✓</span>
       </td>`;
 
-    const tallaSel   = tr.querySelector('.talla-sel');
+    const camisaSel  = tr.querySelector('.camisa-sel');
+    const shortSel   = tr.querySelector('.short-sel');
     const dorsalInp  = tr.querySelector('.dorsal-inp');
     const cat2027Val = tr.querySelector('.cat2027-val');
     const anioInp    = tr.querySelector('.anio-inp');
@@ -252,15 +266,17 @@
     const btnOk      = tr.querySelector('.btn-ok');
 
     function checkDirty() {
-      const dirty = tallaSel.value          !== tr.dataset.origTalla  ||
-                    String(dorsalInp.value) !== tr.dataset.origDorsal ||
-                    String(anioInp.value)   !== tr.dataset.origAnio;
+      const dirty = camisaSel.value          !== tr.dataset.origCamisa ||
+                    shortSel.value           !== tr.dataset.origShort  ||
+                    String(dorsalInp.value)  !== tr.dataset.origDorsal ||
+                    String(anioInp.value)    !== tr.dataset.origAnio;
       tr.dataset.dirty = dirty ? 'true' : 'false';
       btnGuardar.classList.toggle('hidden', !dirty);
       if (!dirty) btnOk.classList.add('hidden');
     }
 
-    tallaSel.addEventListener('change', checkDirty);
+    camisaSel.addEventListener('change', checkDirty);
+    shortSel.addEventListener('change',  checkDirty);
     dorsalInp.addEventListener('input',  checkDirty);
     anioInp.addEventListener('input', () => {
       cat2027Val.textContent = cat2027FromAnio(anioInp.value);
@@ -277,7 +293,8 @@
         btnGuardar.classList.add('hidden');
         btnOk.classList.remove('hidden');
         tr.dataset.dirty        = 'false';
-        tr.dataset.origTalla    = tallaSel.value;
+        tr.dataset.origCamisa   = camisaSel.value;
+        tr.dataset.origShort    = shortSel.value;
         tr.dataset.origDorsal   = String(dorsalInp.value);
         tr.dataset.origAnio     = String(anioInp.value);
         setTimeout(() => btnOk.classList.add('hidden'), 2000);
@@ -291,20 +308,22 @@
   // ── Guardar un jugador ─────────────────────────────────────────
   async function guardarJugador(tr) {
     const { equipoId, equipoNombre, jugadorId, jugadorNombre, catActual } = tr.dataset;
-    const talla    = tr.querySelector('.talla-sel').value;
-    const dorsal   = tr.querySelector('.dorsal-inp').value;
-    const anioNac  = tr.querySelector('.anio-inp').value;
-    const cat2027  = cat2027FromAnio(anioNac);
+    const tallaCamisa = tr.querySelector('.camisa-sel').value;
+    const tallaShort  = tr.querySelector('.short-sel').value;
+    const dorsal      = tr.querySelector('.dorsal-inp').value;
+    const anioNac     = tr.querySelector('.anio-inp').value;
+    const cat2027     = cat2027FromAnio(anioNac);
 
     const docRef = db.collection('uniformes').doc(equipoId);
     const updateData = {};
     updateData[`pedido.${jugadorId}`] = {
-      nombre:    jugadorNombre,
-      catActual: catActual,
-      cat2027:   cat2027 !== '—' ? cat2027 : '',
-      anioNac:   anioNac !== '' ? Number(anioNac) : null,
-      talla:     talla,
-      dorsal:    dorsal !== '' ? Number(dorsal) : null
+      nombre:      jugadorNombre,
+      catActual:   catActual,
+      cat2027:     cat2027 !== '—' ? cat2027 : '',
+      anioNac:     anioNac !== '' ? Number(anioNac) : null,
+      tallaCamisa: tallaCamisa,
+      tallaShort:  tallaShort,
+      dorsal:      dorsal !== '' ? Number(dorsal) : null
     };
     updateData['actualizadoPor'] = currentUser.uid;
     updateData['ultimaEdicion']  = firebase.firestore.FieldValue.serverTimestamp();
@@ -345,7 +364,8 @@
         const btnOk      = tr.querySelector('.btn-ok');
 
         tr.dataset.dirty       = 'false';
-        tr.dataset.origTalla   = tallaSel.value;
+        tr.dataset.origCamisa  = tr.querySelector('.camisa-sel').value;
+        tr.dataset.origShort   = tr.querySelector('.short-sel').value;
         tr.dataset.origDorsal  = String(dorsalInp.value);
         tr.dataset.origAnio    = String(tr.querySelector('.anio-inp').value);
         btnGuardar.classList.add('hidden');
@@ -366,9 +386,10 @@
     const filas = [...document.querySelectorAll(`[data-equipo-id="${equipoId}"]`)];
     const total       = filas.length;
     const completados = filas.filter(tr => {
-      const talla  = tr.querySelector('.talla-sel').value;
+      const camisa = tr.querySelector('.camisa-sel').value;
+      const short  = tr.querySelector('.short-sel').value;
       const dorsal = tr.querySelector('.dorsal-inp').value;
-      return talla && dorsal;
+      return camisa && short && dorsal;
     }).length;
     const label = document.getElementById(`contador-${equipoId}`);
     if (label) label.textContent = `${completados}/${total} completados`;
@@ -377,7 +398,9 @@
   function contarCompletados(jugadores, pedido) {
     return jugadores.filter(j => {
       const p = pedido[j.id];
-      return p && p.talla && (p.dorsal !== null && p.dorsal !== undefined && p.dorsal !== '');
+      const camisa = p?.tallaCamisa || p?.talla || '';
+      const short  = p?.tallaShort  || '';
+      return p && camisa && short && (p.dorsal !== null && p.dorsal !== undefined && p.dorsal !== '');
     }).length;
   }
 
