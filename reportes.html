@@ -337,6 +337,11 @@
             <option value="partido">Partido</option>
           </select>
         </div>
+        <label class="flex items-center gap-3 cursor-pointer select-none bg-lfc-charcoal rounded-xl px-4 py-3 border border-lfc-slate/20">
+          <input id="mas-excluir-lp" type="checkbox"
+            class="w-4 h-4 accent-lfc-red rounded cursor-pointer">
+          <span class="text-white text-sm font-medium">Eliminar ausencias por Lesión y Permiso</span>
+        </label>
         <button id="btn-generar-mas"
           class="w-full bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-xl uppercase tracking-widest py-3 rounded-xl transition">
           Generar Reporte Master
@@ -1008,6 +1013,7 @@
     const hasta     = document.getElementById('mas-hasta').value;
     const tipoSel   = document.getElementById('mas-tipo').value;
     const esPartido = tipoSel === 'partido';
+    const excluirLP = !esPartido && document.getElementById('mas-excluir-lp').checked;
     if (!desde||!hasta) { showToast('Selecciona rango de fechas.','error'); return; }
 
     document.getElementById('mas-results').classList.add('hidden');
@@ -1027,8 +1033,14 @@
         const sesiones      = todasSesiones.filter(s => (s.tipo || 'entrenamiento') === tipoSel);
         if (!sesiones.length) continue;
         const jugadores = agregarPorJugador(sesiones, esPartido);
-        const prom      = jugadores.length
-          ? Math.round(jugadores.reduce((s,j) => s + (esPartido ? pct(j.asiste,j.total) : pct(j.asiste+j.tarde,j.total)), 0) / jugadores.length)
+        const calcPctMas = (j) => esPartido
+          ? pct(j.asiste, j.total)
+          : excluirLP
+            ? pct(j.asiste + j.tarde + (j.lesion||0) + (j.permiso||0), j.total)
+            : pct(j.asiste + j.tarde, j.total);
+        jugadores.sort((a, b) => calcPctMas(b) - calcPctMas(a));
+        const prom = jugadores.length
+          ? Math.round(jugadores.reduce((s,j) => s + calcPctMas(j), 0) / jugadores.length)
           : 0;
         resultados.push({ eq, sesiones, jugadores, prom });
       }
@@ -1080,7 +1092,7 @@
           </div>
           <p class="text-lfc-slate text-xs mt-2">${r.sesiones.length} sesiones · ${leyendaFooter}</p>`;
         tablas.appendChild(sec);
-        renderFilasJugadores(`mas-tbody-${r.eq.id}`, r.jugadores, esPartido);
+        renderFilasJugadores(`mas-tbody-${r.eq.id}`, r.jugadores, esPartido, excluirLP);
       });
 
       document.getElementById('mas-results').classList.remove('hidden');
