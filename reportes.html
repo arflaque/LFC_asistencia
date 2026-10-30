@@ -762,6 +762,8 @@
           ? pct(j.asiste + j.tarde + (j.lesion||0) + (j.permiso||0), j.total)
           : pct(j.asiste + j.tarde, j.total);
 
+      jugadores.sort((a, b) => calcPct(b) - calcPct(a));
+
       const prom = jugadores.length
         ? Math.round(jugadores.reduce((s,j) => s + calcPct(j), 0) / jugadores.length)
         : 0;
