@@ -84,6 +84,10 @@
         class="flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition">
         Master
       </button>
+      <button id="btn-tab-aasca" onclick="showTab('aasca')"
+        class="flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition">
+        AASCA
+      </button>
       <button id="btn-tab-fantasmas" onclick="showTab('fantasmas')"
         class="hidden flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition">
         Fantasmas
@@ -367,7 +371,92 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════
-         TAB 4 — SESIONES FANTASMA (solo admins)
+         TAB 4 — AASCA SUB 21
+         ═══════════════════════════════════════════════════════ -->
+    <div id="tab-aasca" class="hidden">
+
+      <section class="bg-lfc-navy rounded-2xl p-5 mb-6">
+        <h2 class="text-white font-barlow font-bold text-2xl uppercase tracking-wide mb-1">Sub 21 — Invitados AASCA</h2>
+        <p class="text-lfc-slate text-xs mb-4">Asistencia a entrenamientos de jugadores invitados AASCA en Sub 21.</p>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Desde</label>
+            <input id="aasca-desde" type="date"
+              class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Hasta</label>
+            <input id="aasca-hasta" type="date"
+              class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+          </div>
+        </div>
+        <button id="btn-generar-aasca"
+          class="w-full bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-xl uppercase tracking-widest py-3 rounded-xl transition">
+          Generar Reporte
+        </button>
+      </section>
+
+      <div id="aasca-loading" class="hidden flex justify-center py-8"><div class="spinner"></div></div>
+      <div id="aasca-vacio"   class="hidden text-center py-8 text-lfc-slate text-sm">No hay sesiones de entrenamiento en ese rango de fechas.</div>
+
+      <section id="aasca-results" class="hidden">
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-3 gap-3 mb-5">
+          <div class="bg-lfc-navy rounded-xl p-3 text-center">
+            <p class="text-lfc-slate text-xs uppercase tracking-widest">Sesiones</p>
+            <p id="aasca-kpi-sesiones" class="text-white font-barlow font-bold text-3xl mt-1">0</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-3 text-center">
+            <p class="text-lfc-slate text-xs uppercase tracking-widest">Invitados</p>
+            <p id="aasca-kpi-jugadores" class="text-white font-barlow font-bold text-3xl mt-1">0</p>
+          </div>
+          <div class="bg-lfc-navy rounded-xl p-3 text-center">
+            <p class="text-lfc-slate text-xs uppercase tracking-widest">% Prom.</p>
+            <p id="aasca-kpi-prom" class="font-barlow font-bold text-3xl mt-1">—</p>
+          </div>
+        </div>
+
+        <!-- Tabla resumen -->
+        <div class="bg-lfc-navy rounded-2xl p-4 mb-5">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-white font-barlow font-bold text-lg uppercase tracking-wide">Por jugador</h3>
+            <button id="aasca-btn-csv" class="text-lfc-yellow text-xs font-semibold uppercase tracking-wide hover:text-white transition">
+              Exportar CSV
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs min-w-[380px]">
+              <thead>
+                <tr class="text-lfc-slate uppercase tracking-wider border-b border-white/10">
+                  <th class="text-left py-2 pr-2 font-semibold">Jugador</th>
+                  <th class="text-center py-2 px-1 font-semibold">%</th>
+                  <th class="text-center py-2 px-1 font-semibold text-green-400">A</th>
+                  <th class="text-center py-2 px-1 font-semibold text-red-400">F</th>
+                  <th class="text-center py-2 px-1 font-semibold text-blue-400">P</th>
+                  <th class="text-center py-2 px-1 font-semibold text-orange-400">L</th>
+                  <th class="text-center py-2 px-1 font-semibold text-yellow-400">T</th>
+                  <th class="text-center py-2 px-1 font-semibold text-lfc-slate">S</th>
+                  <th class="text-center py-2 pl-1 font-semibold text-lfc-slate/50">NM</th>
+                </tr>
+              </thead>
+              <tbody id="aasca-tabla-cuerpo"></tbody>
+            </table>
+          </div>
+          <p class="text-lfc-slate text-xs mt-2">A=Asiste · F=Falta · P=Permiso · L=Lesión · T=Tarde · S=Suspendido · NM=No Marcado</p>
+        </div>
+
+        <!-- Detalle sesión a sesión -->
+        <div class="bg-lfc-navy rounded-2xl p-4 mb-5">
+          <h3 class="text-white font-barlow font-bold text-lg uppercase tracking-wide mb-3">Detalle por sesión</h3>
+          <div id="aasca-detalle" class="grid gap-4"></div>
+        </div>
+
+      </section>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         TAB 5 — SESIONES FANTASMA (solo admins)
          ═══════════════════════════════════════════════════════ -->
     <div id="tab-fantasmas" class="hidden">
 
@@ -552,7 +641,7 @@
   };
 
   // ─── Tabs ─────────────────────────────────────────────────────
-  const ALL_TABS = ['equipo','jugador','master','fantasmas'];
+  const ALL_TABS = ['equipo','jugador','master','aasca','fantasmas'];
 
   function showTab(tab) {
     ALL_TABS.forEach(t => {
@@ -588,6 +677,9 @@
     defaultDates('jug-desde', 'jug-hasta');
     defaultDates('mas-desde', 'mas-hasta');
     defaultDates('fan-desde', 'fan-hasta');
+    // AASCA: fecha fija de inicio
+    document.getElementById('aasca-desde').value = '2026-10-19';
+    document.getElementById('aasca-hasta').value = todayStr();
 
     showTab('equipo');
 
@@ -610,7 +702,11 @@
     // ── Tab 3 ────────────────────────────────────────────────
     document.getElementById('btn-generar-mas').addEventListener('click', generarReporteMaster);
 
-    // ── Tab 4 (solo admins) ───────────────────────────────────
+    // ── Tab 4 — AASCA ────────────────────────────────────────
+    document.getElementById('btn-generar-aasca').addEventListener('click', generarReporteAasca);
+    document.getElementById('aasca-btn-csv').addEventListener('click', exportarCSVAasca);
+
+    // ── Tab 5 (solo admins) ───────────────────────────────────
     if (user.rol === 'admin') {
       document.getElementById('btn-tab-fantasmas').classList.remove('hidden');
       document.getElementById('btn-buscar-fan').addEventListener('click', buscarFantasmas);
@@ -976,7 +1072,147 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  REPORTE 4 — SESIONES FANTASMA
+  //  REPORTE 4 — AASCA SUB 21
+  // ═══════════════════════════════════════════════════════════
+  let aaascaReportData = { sesiones: [], jugadores: [] };
+
+  async function generarReporteAasca() {
+    const desde = document.getElementById('aasca-desde').value;
+    const hasta = document.getElementById('aasca-hasta').value;
+    if (!desde || !hasta) { showToast('Selecciona rango de fechas.', 'error'); return; }
+
+    document.getElementById('aasca-results').classList.add('hidden');
+    document.getElementById('aasca-vacio').classList.add('hidden');
+    document.getElementById('aasca-loading').classList.remove('hidden');
+
+    try {
+      const snap = await db.collection('asistencia')
+        .where('fecha', '>=', desde)
+        .where('fecha', '<=', hasta)
+        .get();
+
+      const sesiones = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(s => s.equipo === 'u21' && (!s.tipo || s.tipo === 'entrenamiento'))
+        .sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+      document.getElementById('aasca-loading').classList.add('hidden');
+
+      if (!sesiones.length) { document.getElementById('aasca-vacio').classList.remove('hidden'); return; }
+
+      // Acumular por jugador AASCA-
+      const mapaJug = {};
+      sesiones.forEach(ses => {
+        Object.entries(ses.registros || {}).forEach(([jugId, rec]) => {
+          if (!(rec.nombre || '').startsWith('AASCA-')) return;
+          if (!mapaJug[jugId]) {
+            mapaJug[jugId] = {
+              nombre: rec.nombre,
+              sesiones: [],
+              asiste: 0, falta: 0, permiso: 0,
+              lesion: 0, tarde: 0, suspendido: 0, nm: 0, total: 0,
+            };
+          }
+          const j = mapaJug[jugId];
+          j.total++;
+          j.sesiones.push({ fecha: ses.fecha, estado: rec.estado || null });
+          const e = rec.estado;
+          if (e && Object.prototype.hasOwnProperty.call(j, e)) j[e]++;
+          else if (!e) j.nm++;
+        });
+      });
+
+      const jugadores = Object.values(mapaJug)
+        .sort((a, b) => pct(b.asiste + b.tarde, b.total) - pct(a.asiste + a.tarde, a.total));
+
+      aaascaReportData = { sesiones, jugadores, desde, hasta };
+
+      // KPIs
+      document.getElementById('aasca-kpi-sesiones').textContent  = sesiones.length;
+      document.getElementById('aasca-kpi-jugadores').textContent = jugadores.length;
+      if (jugadores.length) {
+        const promedio = Math.round(
+          jugadores.reduce((s, j) => s + pct(j.asiste + j.tarde, j.total), 0) / jugadores.length
+        );
+        const kpi = document.getElementById('aasca-kpi-prom');
+        kpi.textContent  = promedio + '%';
+        kpi.style.color  = colorPct(promedio);
+      } else {
+        document.getElementById('aasca-kpi-prom').textContent = '—';
+      }
+
+      // Tabla resumen
+      const tbody = document.getElementById('aasca-tabla-cuerpo');
+      tbody.innerHTML = jugadores.map(j => {
+        const p      = pct(j.asiste + j.tarde, j.total);
+        const nombre = j.nombre.replace(/^AASCA-/i, '').trim();
+        return `
+          <tr class="border-b border-white/5 hover:bg-white/5">
+            <td class="py-2 pr-2 text-white font-medium">${nombre}</td>
+            <td class="text-center px-1 font-bold" style="color:${colorPct(p)}">${p}%</td>
+            <td class="text-center px-1 text-green-400">${j.asiste}</td>
+            <td class="text-center px-1 text-red-400">${j.falta}</td>
+            <td class="text-center px-1 text-blue-400">${j.permiso}</td>
+            <td class="text-center px-1 text-orange-400">${j.lesion}</td>
+            <td class="text-center px-1 text-yellow-400">${j.tarde}</td>
+            <td class="text-center px-1 text-lfc-slate">${j.suspendido}</td>
+            <td class="text-center pl-1 text-lfc-slate/50">${j.nm}</td>
+          </tr>`;
+      }).join('');
+
+      // Detalle sesión a sesión
+      const detalle = document.getElementById('aasca-detalle');
+      detalle.innerHTML = jugadores.map(j => {
+        const p      = pct(j.asiste + j.tarde, j.total);
+        const nombre = j.nombre.replace(/^AASCA-/i, '').trim();
+        const sesHtml = j.sesiones.map(s => {
+          const ui = s.estado
+            ? (ESTADO_UI[s.estado] || { label: s.estado, cls: 'text-lfc-slate', bg: 'bg-white/5' })
+            : { label: 'NM', cls: 'text-lfc-slate/50', bg: 'bg-white/5' };
+          const styleAttr = ui.style ? ` style="${ui.style}"` : '';
+          return `
+            <div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+              <span class="text-lfc-slate text-xs">${formatFecha(s.fecha)}</span>
+              <span class="text-xs font-bold px-3 py-1 rounded-lg ${ui.bg} ${ui.cls}"${styleAttr}>${ui.label}</span>
+            </div>`;
+        }).join('');
+        return `
+          <div class="border border-white/10 rounded-xl overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 bg-white/5">
+              <span class="text-white font-semibold text-sm">${nombre}</span>
+              <span class="font-barlow font-bold text-lg" style="color:${colorPct(p)}">${p}%</span>
+            </div>
+            <div class="px-4 py-1">${sesHtml}</div>
+          </div>`;
+      }).join('');
+
+      document.getElementById('aasca-results').classList.remove('hidden');
+    } catch(e) {
+      document.getElementById('aasca-loading').classList.add('hidden');
+      showToast('Error al generar el reporte.', 'error');
+      console.error(e);
+    }
+  }
+
+  function exportarCSVAasca() {
+    const { sesiones, jugadores, desde, hasta } = aaascaReportData;
+    if (!jugadores.length) return;
+    const fechas = sesiones.map(s => s.fecha);
+    const header = ['Jugador', '%', 'Asiste', 'Falta', 'Permiso', 'Lesion', 'Tarde', 'Suspendido', 'NM', ...fechas];
+    const rows = jugadores.map(j => {
+      const nombre = j.nombre.replace(/^AASCA-/i, '').trim();
+      const p = pct(j.asiste + j.tarde, j.total);
+      const sesEstados = sesiones.map(ses => {
+        const s = j.sesiones.find(x => x.fecha === ses.fecha);
+        return s ? (s.estado || 'NM') : '—';
+      });
+      return [nombre, p + '%', j.asiste, j.falta, j.permiso, j.lesion, j.tarde, j.suspendido, j.nm, ...sesEstados];
+    });
+    descargarCSV([header, ...rows], `AASCA_Sub21_${desde}_${hasta}.csv`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  REPORTE 5 — SESIONES FANTASMA
   // ═══════════════════════════════════════════════════════════
   async function buscarFantasmas() {
     const desde = document.getElementById('fan-desde').value;
