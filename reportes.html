@@ -129,6 +129,11 @@
               <option value="partido">Partido</option>
             </select>
           </div>
+          <label class="flex items-center gap-3 cursor-pointer select-none bg-lfc-charcoal rounded-xl px-4 py-3 border border-lfc-slate/20">
+            <input id="eq-excluir-lp" type="checkbox"
+              class="w-4 h-4 accent-lfc-red rounded cursor-pointer">
+            <span class="text-white text-sm font-medium">Eliminar ausencias por Lesión y Permiso</span>
+          </label>
           <button id="btn-generar-eq"
             class="w-full bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-xl uppercase tracking-widest py-3 rounded-xl transition">
             Generar Reporte
@@ -595,11 +600,15 @@
   }
 
   // Renderiza filas de tabla de jugadores en un <tbody id>
-  function renderFilasJugadores(tbodyId, jugadores, esPartido) {
+  function renderFilasJugadores(tbodyId, jugadores, esPartido, excluirLP = false) {
     const tbody = document.getElementById(tbodyId);
     tbody.innerHTML = '';
     jugadores.forEach(j => {
-      const p = esPartido ? pct(j.asiste, j.total) : pct(j.asiste + j.tarde, j.total);
+      const p = esPartido
+        ? pct(j.asiste, j.total)
+        : excluirLP
+          ? pct(j.asiste + j.tarde + (j.lesion || 0) + (j.permiso || 0), j.total)
+          : pct(j.asiste + j.tarde, j.total);
       if (esPartido) {
         tbody.innerHTML += `
           <tr class="border-b border-white/5 hover:bg-white/5">
@@ -722,6 +731,7 @@
     const hasta     = document.getElementById('eq-hasta').value;
     const tipoSel   = document.getElementById('eq-tipo').value;
     const esPartido = tipoSel === 'partido';
+    const excluirLP = !esPartido && document.getElementById('eq-excluir-lp').checked;
     if (!equipoId || !desde || !hasta) { showToast('Selecciona equipo y rango de fechas.','error'); return; }
 
     document.getElementById('eq-results').classList.add('hidden');
@@ -746,8 +756,14 @@
       eqReportData = sesiones;
       const jugadores = agregarPorJugador(sesiones, esPartido);
 
+      const calcPct = (j) => esPartido
+        ? pct(j.asiste, j.total)
+        : excluirLP
+          ? pct(j.asiste + j.tarde + (j.lesion||0) + (j.permiso||0), j.total)
+          : pct(j.asiste + j.tarde, j.total);
+
       const prom = jugadores.length
-        ? Math.round(jugadores.reduce((s,j) => s + (esPartido ? pct(j.asiste,j.total) : pct(j.asiste+j.tarde,j.total)), 0) / jugadores.length)
+        ? Math.round(jugadores.reduce((s,j) => s + calcPct(j), 0) / jugadores.length)
         : 0;
 
       document.getElementById('eq-kpi-sesiones').textContent  = sesiones.length;
@@ -762,16 +778,18 @@
         ? 'A=Asiste · NC=No Convocado · ND=No Disponible TS · FC=Falta/Convocado · NM=No Marcado'
         : 'A=Asiste · F=Falta · P=Permiso · L=Lesión · T=Tarde · S=Suspendido · NM=No Marcado';
 
-      renderFilasJugadores('eq-tabla-cuerpo', jugadores, esPartido);
+      renderFilasJugadores('eq-tabla-cuerpo', jugadores, esPartido, excluirLP);
 
       const labels     = sesiones.map(s => s.fecha.substring(5));
       const dataPoints = sesiones.map(s => {
         const regs = Object.values(s.registros || {});
         const tot  = regs.length;
         if (!tot) return 0;
-        return esPartido
-          ? Math.round(regs.filter(r => r.estado === 'asiste').length / tot * 100)
-          : Math.round(regs.filter(r => r.estado === 'asiste' || r.estado === 'tarde').length / tot * 100);
+        if (esPartido) return Math.round(regs.filter(r => r.estado === 'asiste').length / tot * 100);
+        const contables = excluirLP
+          ? regs.filter(r => ['asiste','tarde','lesion','permiso'].includes(r.estado)).length
+          : regs.filter(r => r.estado === 'asiste' || r.estado === 'tarde').length;
+        return Math.round(contables / tot * 100);
       });
 
       if (eqChart) eqChart.destroy();
