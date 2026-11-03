@@ -74,8 +74,8 @@
   <script src="js/firebase-config.js"></script>
 
   <script>
-    // Redirigir si ya hay sesión
-    auth.onAuthStateChanged(u => { if (u) location.href = 'dashboard.html'; });
+    // Redirigir si ya hay sesión (solo usuarios con email, ignorar sesiones anónimas)
+    auth.onAuthStateChanged(u => { if (u && u.email) location.href = 'dashboard.html'; });
 
     const email  = document.getElementById('inp-email');
     const pass   = document.getElementById('inp-pass');
