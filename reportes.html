@@ -88,6 +88,10 @@
         class="flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition">
         AASCA
       </button>
+      <button id="btn-tab-consulta" onclick="showTab('consulta')"
+        class="flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition">
+        Equipos
+      </button>
       <button id="btn-tab-fantasmas" onclick="showTab('fantasmas')"
         class="hidden flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition">
         Fantasmas
@@ -466,6 +470,68 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════
+         TAB 6 — CONSULTA DE EQUIPOS
+         ═══════════════════════════════════════════════════════ -->
+    <div id="tab-consulta" class="hidden">
+
+      <section class="bg-lfc-navy rounded-2xl p-5 mb-6">
+        <h2 class="text-white font-barlow font-bold text-2xl uppercase tracking-wide mb-1">Consulta de Equipos</h2>
+        <p class="text-lfc-slate text-xs mb-4">Lista de jugadores por temporada y equipo.</p>
+
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Temporada</label>
+            <select id="con-temporada"
+              class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+              <option value="">Cargando…</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-lfc-slate text-xs font-semibold uppercase tracking-widest mb-1.5">Equipo</label>
+            <select id="con-equipo"
+              class="w-full bg-lfc-charcoal text-white rounded-xl px-3 py-2.5 text-sm border border-lfc-slate/20 focus:border-lfc-red focus:outline-none">
+              <option value="">— selecciona temporada —</option>
+            </select>
+          </div>
+        </div>
+        <button id="btn-generar-con"
+          class="w-full bg-lfc-red hover:bg-red-700 text-white font-barlow font-bold text-xl uppercase tracking-widest py-3 rounded-xl transition">
+          Ver Jugadores
+        </button>
+      </section>
+
+      <!-- Resultado -->
+      <div id="con-loading" class="hidden text-center py-10">
+        <p class="text-lfc-slate text-sm animate-pulse">Cargando jugadores…</p>
+      </div>
+      <div id="con-vacio" class="hidden text-center py-10">
+        <p class="text-lfc-slate text-sm">No se encontraron jugadores para este equipo.</p>
+      </div>
+      <section id="con-results" class="hidden bg-lfc-navy rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 id="con-titulo" class="text-white font-barlow font-bold text-xl uppercase tracking-wide"></h3>
+          <span id="con-kpi" class="text-lfc-slate text-xs"></span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs min-w-[360px]">
+            <thead>
+              <tr class="text-lfc-slate uppercase tracking-wider border-b border-white/10">
+                <th class="text-center py-2 px-1 font-semibold w-8">#</th>
+                <th class="text-left py-2 pr-2 font-semibold">Jugador</th>
+                <th class="text-center py-2 px-1 font-semibold">Dorsal</th>
+                <th class="text-center py-2 px-1 font-semibold">Año Nac.</th>
+                <th class="text-center py-2 px-1 font-semibold">Edad</th>
+                <th class="text-center py-2 px-1 font-semibold">Activo</th>
+              </tr>
+            </thead>
+            <tbody id="con-tabla-cuerpo"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
          TAB 5 — SESIONES FANTASMA (solo admins)
          ═══════════════════════════════════════════════════════ -->
     <div id="tab-fantasmas" class="hidden">
@@ -655,7 +721,7 @@
   };
 
   // ─── Tabs ─────────────────────────────────────────────────────
-  const ALL_TABS = ['equipo','jugador','master','aasca','fantasmas'];
+  const ALL_TABS = ['equipo','jugador','master','aasca','consulta','fantasmas'];
 
   function showTab(tab) {
     ALL_TABS.forEach(t => {
@@ -719,6 +785,10 @@
     // ── Tab 4 — AASCA ────────────────────────────────────────
     document.getElementById('btn-generar-aasca').addEventListener('click', generarReporteAasca);
     document.getElementById('aasca-btn-csv').addEventListener('click', exportarCSVAasca);
+
+    // ── Tab 6 — Consulta Equipos ─────────────────────────────
+    iniciarConsultaEquipos();
+    document.getElementById('btn-generar-con').addEventListener('click', verJugadoresEquipo);
 
     // ── Tab 5 (solo admins) ───────────────────────────────────
     if (user.rol === 'admin') {
@@ -1241,6 +1311,82 @@
       return [nombre, p + '%', j.asiste, j.falta, j.permiso, j.lesion, j.tarde, j.suspendido, j.nm, ...sesEstados];
     });
     descargarCSV([header, ...rows], `AASCA_Sub21_${desde}_${hasta}.csv`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  CONSULTA DE EQUIPOS
+  // ═══════════════════════════════════════════════════════════
+  let _todosEquipos = [];   // cache de todos los equipos
+
+  async function iniciarConsultaEquipos() {
+    const snap = await db.collection('equipos').get();
+    _todosEquipos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Temporadas únicas, ordenadas desc
+    const temporadas = [...new Set(_todosEquipos.map(e => e.temporada).filter(Boolean))].sort().reverse();
+    const selTemp = document.getElementById('con-temporada');
+    selTemp.innerHTML = '<option value="">— selecciona —</option>';
+    temporadas.forEach(t => { selTemp.innerHTML += `<option value="${t}">${t}</option>`; });
+
+    selTemp.addEventListener('change', () => {
+      const t = selTemp.value;
+      const selEq = document.getElementById('con-equipo');
+      selEq.innerHTML = '<option value="">— selecciona equipo —</option>';
+      if (!t) return;
+      const orden = ['Sub 9','U9','Sub 11','U11','Sub 13','Sub 13 Proceso','U13','Sub 15','U15','U17','Sub 21','U20'];
+      const filtrados = _todosEquipos
+        .filter(e => e.temporada === t)
+        .sort((a,b) => {
+          const ai = orden.indexOf(a.nombre), bi = orden.indexOf(b.nombre);
+          return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+        });
+      filtrados.forEach(e => { selEq.innerHTML += `<option value="${e.id}">${e.nombre}</option>`; });
+    });
+  }
+
+  async function verJugadoresEquipo() {
+    const equipoId = document.getElementById('con-equipo').value;
+    const temporada = document.getElementById('con-temporada').value;
+    if (!equipoId) { showToast('Selecciona temporada y equipo.', 'error'); return; }
+
+    document.getElementById('con-results').classList.add('hidden');
+    document.getElementById('con-vacio').classList.add('hidden');
+    document.getElementById('con-loading').classList.remove('hidden');
+
+    const snap = await db.collection('equipos').doc(equipoId).collection('jugadores')
+      .orderBy('nombre').get();
+
+    document.getElementById('con-loading').classList.add('hidden');
+
+    if (snap.empty) { document.getElementById('con-vacio').classList.remove('hidden'); return; }
+
+    const jugs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const eq = _todosEquipos.find(e => e.id === equipoId);
+    const activos = jugs.filter(j => j.activo !== false).length;
+
+    document.getElementById('con-titulo').textContent = `${eq?.nombre || ''} — Temporada ${temporada}`;
+    document.getElementById('con-kpi').textContent = `${jugs.length} jugadores · ${activos} activos`;
+
+    const tbody = document.getElementById('con-tabla-cuerpo');
+    tbody.innerHTML = '';
+    jugs.forEach((j, i) => {
+      const activo = j.activo !== false;
+      tbody.innerHTML += `
+        <tr class="border-b border-white/5 hover:bg-white/5 ${activo ? '' : 'opacity-40'}">
+          <td class="text-center py-2 px-1 text-lfc-slate">${i + 1}</td>
+          <td class="py-2 pr-2 text-white font-medium">${j.nombre}</td>
+          <td class="text-center py-2 px-1 text-white">${j.dorsal ?? '—'}</td>
+          <td class="text-center py-2 px-1 text-lfc-slate">${j.anioNac ?? '—'}</td>
+          <td class="text-center py-2 px-1 text-lfc-slate">${j.edadActual ?? '—'}</td>
+          <td class="text-center py-2 px-1">
+            <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${activo ? 'bg-green-900/50 text-green-400' : 'bg-red-900/40 text-red-400'}">
+              ${activo ? 'Sí' : 'No'}
+            </span>
+          </td>
+        </tr>`;
+    });
+
+    document.getElementById('con-results').classList.remove('hidden');
   }
 
   // ═══════════════════════════════════════════════════════════
